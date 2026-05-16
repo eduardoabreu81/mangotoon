@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ComicLib — Biblioteca</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>📚 ComicLib</h1>
+    <div class="header-actions">
+      <button class="btn" onclick="showAddModal()">+ Adicionar</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Filters -->
+    <div class="filters">
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Buscar quadrinhos...">
+      </div>
+      <select class="filter-select" id="filter-site">
+        <option value="">Todos os sites</option>
+      </select>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display: none;">
+      <div class="spinner"></div>
+      <span>Carregando biblioteca...</span>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state" style="display: none;">
+      <div class="empty-state-icon">📚</div>
+      <h3>Sua biblioteca está vazia</h3>
+      <p>Adicione quadrinhos para começar a coleção!</p>
+      <button class="btn" onclick="showAddModal()" style="margin-top: 1rem;">+ Adicionar Quadrinho</button>
+    </div>
+
+    <!-- Library Grid -->
+    <div class="library-grid" id="library-grid"></div>
+  </main>
+
+  <!-- Add Modal -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <h2>Adicionar Quadrinho</h2>
+      <form id="add-form">
+        <input type="url" id="url-input" placeholder="https://mangadex.org/title/..." required>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="hideAddModal()">Cancelar</button>
+          <button type="submit" class="btn">Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
