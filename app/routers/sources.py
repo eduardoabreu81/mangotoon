@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from fastapi import APIRouter
 
+from app.models.comic import SourceCapabilities
 from app.sources.base import SourceError
 from app.services.source_registry import source_registry
 
@@ -28,7 +29,7 @@ async def list_sources() -> list[dict]:
         {
             "name": adapter.name,
             "domains": getattr(adapter, "domains", []),
-            "capabilities": adapter.capabilities.model_dump(),
+            "capabilities": getattr(adapter, "capabilities", SourceCapabilities()).model_dump(),
         }
         for adapter in source_registry.adapters
     ]
