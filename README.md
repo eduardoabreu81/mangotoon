@@ -40,6 +40,12 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - **POST /api/library/import/confirm** — save with optional title override and auto-download toggle
 - **Legacy /api/library/add preserved** — backward compatible
 
+### Phase 14 — Packaging
+
+- **Windows launcher** — `run.bat` checks Python/uv, installs dependencies, initializes data, starts the server, and opens the browser
+- **Docker image** — Python 3.12 slim image with uv-managed dependencies
+- **Docker Compose** — persistent local `data/` volume and port `8000:8000`
+
 ### Phase 12 — Source Capability Matrix
 
 - **Adapter capabilities exposed via API** — each source declares what it supports
@@ -100,6 +106,12 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - Typed request models (ImportPreviewRequest, ImportConfirmRequest)
 - ImportConfirmResponse model
 - Legacy /api/library/add preserved as wrapper
+
+### Phase 14 — Packaging
+- Added `run.bat` for Windows local startup
+- Added `Dockerfile` for containerized deployment
+- Added `docker-compose.yml` with local data persistence
+- Docker startup initializes local data before launching Uvicorn
 
 ### Phase 12 — Source Capability Matrix
 - SourceCapabilities model (metadata, cover, chapters, download, languages, refresh, search, auth, javascript)
@@ -194,7 +206,7 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 11 | ✅ | Adapter-first core refactor — remove MangaDex hardcodes |
 | 12 | ✅ | Source capability matrix — adapter capabilities exposed via API |
 | 13 | ✅ | Universal import preview flow — source-agnostic metadata preview before download |
-| 14 | 🔄 | **Packaging** — run.bat, Dockerfile |
+| 14 | ✅ | Packaging — run.bat, Dockerfile, docker-compose |
 | 15 | 📋 | Backup and export |
 | 16 | 📋 | Second source adapter |
 | 17 | 📋 | Multi-source normalization |
@@ -240,6 +252,28 @@ No cloud sync. No accounts. No tracking. No React. No database.
 
 ## 🚀 Setup
 
+### Windows
+
+Double-click `run.bat`, or run it from Command Prompt:
+
+```bat
+run.bat
+```
+
+The launcher checks for Python and uv, installs dependencies, initializes local data, starts MangoToon, and opens `http://127.0.0.1:8000/`.
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+Open `http://127.0.0.1:8000/`.
+
+Docker Compose maps `./data` to `/app/data` so library metadata, history, settings, and downloaded chapters persist across container restarts.
+
+### Manual
+
 ```bash
 # Clone
 git clone https://github.com/eduardoabreu81/mangotoon.git
@@ -271,6 +305,7 @@ Local data is ignored by Git.
 ## ▶️ Run
 
 ```bash
+python scripts/init_data.py
 uv run uvicorn app.main:app --reload
 ```
 
@@ -281,7 +316,7 @@ Open `http://127.0.0.1:8000/` for the Library page.
 ## 🧪 Test
 
 ```bash
-uv run pytest
+uv run pytest tests/ -v
 ```
 
 ---

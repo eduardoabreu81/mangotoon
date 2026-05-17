@@ -1,0 +1,9 @@
+services:
+  mangotoon:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
