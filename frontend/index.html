@@ -1,62 +1,65 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ComicLib — Biblioteca</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>MangoToon</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-  <header class="header">
-    <h1>📚 ComicLib</h1>
-    <div class="header-actions">
-      <button class="btn" onclick="showAddModal()">+ Adicionar</button>
-    </div>
-  </header>
-
-  <main class="container">
-    <!-- Filters -->
-    <div class="filters">
-      <div class="search-box">
-        <input type="text" id="search" placeholder="Buscar quadrinhos...">
+  <main class="page-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Local Library</p>
+        <h1>MangoToon</h1>
       </div>
-      <select class="filter-select" id="filter-site">
-        <option value="">Todos os sites</option>
+      <span id="api-status" class="status-pill">Checking...</span>
+    </header>
+
+    <section class="toolbar" aria-label="Library controls">
+      <input id="library-search" type="search" placeholder="Search library..." aria-label="Search library">
+      <select id="library-sort" aria-label="Sort library">
+        <option value="added">Recently Added</option>
+        <option value="title">Title A-Z</option>
+        <option value="read">Last Read</option>
+        <option value="progress">Download Progress</option>
       </select>
-    </div>
+      <button id="btn-add" type="button">Add Manga</button>
+    </section>
 
-    <!-- Loading -->
-    <div id="loading" class="loading" style="display: none;">
-      <div class="spinner"></div>
-      <span>Carregando biblioteca...</span>
-    </div>
+    <section id="library-loading" class="library-loading" aria-label="Loading" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <span>Loading library...</span>
+    </section>
 
-    <!-- Empty State -->
-    <div id="empty-state" class="empty-state" style="display: none;">
-      <div class="empty-state-icon">📚</div>
-      <h3>Sua biblioteca está vazia</h3>
-      <p>Adicione quadrinhos para começar a coleção!</p>
-      <button class="btn" onclick="showAddModal()" style="margin-top: 1rem;">+ Adicionar Quadrinho</button>
-    </div>
+    <section id="empty-library" class="empty-library" aria-label="Library" hidden>
+      <h2>Library</h2>
+      <p>No manga in your library yet. Initialize local data or add your first manga to get started.</p>
+    </section>
 
-    <!-- Library Grid -->
-    <div class="library-grid" id="library-grid"></div>
+    <div id="library-grid" class="library-grid" aria-label="Comic library"></div>
+
+    <!-- Add Manga Modal -->
+    <div id="add-modal" class="modal" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+        <h2 id="add-modal-title">Add Manga</h2>
+        <form id="add-form">
+          <label for="add-url">Manga URL</label>
+          <input id="add-url" type="url" placeholder="https://mangadex.org/title/..." required>
+          <div id="add-source-detected" class="source-detected"></div>
+          <label for="add-title-override">Title Override (optional)</label>
+          <input id="add-title-override" type="text" placeholder="Custom title">
+          <div class="modal-actions">
+            <button type="button" id="add-cancel" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Add</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
-  <!-- Add Modal -->
-  <div class="modal-overlay" id="add-modal">
-    <div class="modal">
-      <h2>Adicionar Quadrinho</h2>
-      <form id="add-form">
-        <input type="url" id="url-input" placeholder="https://mangadex.org/title/..." required>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="hideAddModal()">Cancelar</button>
-          <button type="submit" class="btn">Adicionar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script src="js/app.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>

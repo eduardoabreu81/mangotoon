@@ -1,0 +1,45 @@
+Read SPEC.md carefully and implement Phase 0 only.
+
+Working product name: APP_NAME.
+If the repository still contains the old visible name, keep internal paths stable for now, but centralize the visible product name in one config constant so it can be renamed later without touching many files.
+
+Goal: make the repository installable, runnable, and testable with a clean FastAPI backend and static frontend serving.
+
+Requirements:
+1. Fix Python package structure so `app` is a proper importable package.
+2. Fix or create `pyproject.toml` and `requirements.txt`.
+3. Add required runtime dependencies only. Start simple.
+4. Add `app/main.py` with FastAPI app creation.
+5. Add `GET /api/health` returning a small JSON status payload.
+6. Serve `frontend/index.html` at `/`.
+7. Mount frontend assets under `/static`.
+8. Add `scripts/init_data.py` to create:
+   - `data/library.json`
+   - `data/history.json`
+   - `data/settings.json`
+   - `data/comics/`
+9. Add `.gitignore` for Python cache, virtualenvs, `.env`, local data, downloaded manga, and generated files.
+10. Add `.env.example` with safe placeholder values only.
+11. Add `README.md` with setup, install, init, run, and test commands.
+12. Add minimal tests for health endpoint and data initialization.
+
+Do not implement MangaDex yet.
+Do not implement downloading yet.
+Do not implement generic scraping yet.
+Do not add React, Vue, Next.js, Tailwind, or any frontend build step.
+Use Vanilla JavaScript, HTML, and CSS.
+Keep all code, filenames, comments, docs, and UI labels in English.
+Do not commit downloaded manga, user data, generated data, or secrets.
+
+Acceptance criteria:
+- `uv run uvicorn app.main:app --reload` starts successfully.
+- `GET /api/health` returns a valid OK response.
+- `/` loads a basic Library page.
+- `python scripts/init_data.py` creates local data files.
+- Tests pass.
+
+After finishing, report:
+- Files changed.
+- Commands run.
+- Test results.
+- Any issues found.

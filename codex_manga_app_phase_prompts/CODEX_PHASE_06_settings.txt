@@ -1,0 +1,46 @@
+Read SPEC.md carefully and implement Phase 6 only.
+
+Working product name: APP_NAME.
+Assume Phases 0 through 5 are complete.
+
+Goal: make local configuration editable through a Settings page.
+
+Requirements:
+1. Build `frontend/settings.html`.
+2. Build `frontend/js/settings.js`.
+3. Add Settings navigation from the main UI.
+4. Connect to:
+   - `GET /api/settings`
+   - `POST /api/settings`
+5. User-editable settings for MVP:
+   - visible product name, if already centralized
+   - library path
+   - download concurrency, range 1 to 5
+   - theme, dark for now, light can be disabled or marked future
+   - UI language, English for now, other languages can be disabled or marked future
+6. Keep LLM settings hidden, disabled, or clearly marked as future. Do not implement LLM provider logic.
+7. Validate settings on backend.
+8. Show validation errors in UI.
+9. Never expose secrets in git-tracked files.
+10. Add tests for settings validation and persistence.
+
+Important constraints:
+- Do not move existing downloaded files automatically when library path changes unless you implement it safely and explicitly.
+- If changing library path only affects future downloads, say that clearly in the UI.
+- Do not add cloud sync.
+- Do not add accounts.
+- Do not add LLM integration yet.
+
+Acceptance criteria:
+- Settings page loads current settings.
+- User can save valid settings.
+- Invalid settings show clear errors.
+- Saved settings persist after app restart.
+- No API keys or secrets are committed.
+- Tests pass.
+
+After finishing, report:
+- Files changed.
+- Commands run.
+- Test results.
+- Any issues found.

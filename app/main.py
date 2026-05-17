@@ -1,36 +1,36 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
+from app import __version__
 from app.core.config import settings
 from app.routers.library import router as library_router
+from app.routers.settings import router as settings_router
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    settings.library_path.mkdir(parents=True, exist_ok=True)
-    yield
-
-
-app = FastAPI(
-    title="ComicLib",
-    version="0.1.0",
-    description="Comic Library Downloader — Baixe e leia quadrinhos offline",
-    lifespan=lifespan,
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(library_router)
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 
-@app.get("/api/health")
-async def health():
-    return {"status": "ok"}
+def create_app() -> FastAPI:
+    app = FastAPI(title=settings.app_name, version=__version__)
+
+    if FRONTEND_DIR.exists():
+        app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+    app.include_router(library_router, prefix="/api")
+    app.include_router(settings_router, prefix="/api")
+
+    @app.get("/api/health")
+    async def health() -> dict[str, str]:
+        return {"status": "ok", "app": settings.app_name, "version": __version__}
+
+    @app.get("/")
+    async def root() -> FileResponse:
+        return FileResponse(FRONTEND_DIR / "index.html")
+
+    return app
+
+
+app = create_app()

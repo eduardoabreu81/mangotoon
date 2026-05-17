@@ -1,43 +1,92 @@
+"""Pydantic models for the manga library."""
+
 from datetime import datetime
 from enum import Enum
-from uuid import uuid4
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class ComicStatus(str, Enum):
-    pending = "pending"
+class ChapterStatus(str, Enum):
+    not_downloaded = "not_downloaded"
+    queued = "queued"
     downloading = "downloading"
-    complete = "complete"
+    downloaded = "downloaded"
     error = "error"
 
 
 class Chapter(BaseModel):
-    number: float
-    title: str
-    pages: list[str] = Field(default_factory=list)
-    downloaded: bool = False
-    path: str = ""
+    chapter_id: str
+    title: str = ""
+    chapter_number: str = ""
+    volume: str = ""
+    language: str = "en"
+    pages: int = 0
+    status: ChapterStatus = ChapterStatus.not_downloaded
+    downloaded_pages: int = 0
+    error_message: str = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ReadingProgress(BaseModel):
     comic_id: str
-    chapter: float
-    page: int
-    completed: bool = False
+    chapter_id: str = ""
+    page: int = 0
+    total_pages: int = 0
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ComicStatus(str, Enum):
+    pending = "pending"
+    metadata_fetching = "metadata_fetching"
+    downloading = "downloading"
+    complete = "complete"
+    partial = "partial"
+    error = "error"
 
 
 class Comic(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid4()))
+    comic_id: str
     title: str
-    source_url: str
-    source_site: str
+    source: str = ""
+    source_url: str = ""
+    source_id: str = ""
+    description: str = ""
     cover_url: str = ""
-    total_chapters: int = 0
-    downloaded_chapters: list[int] = Field(default_factory=list)
+    cover_local: str = ""
     status: ComicStatus = ComicStatus.pending
-    last_read_chapter: int = 0
-    last_read_page: int = 0
+    chapters: list[Chapter] = Field(default_factory=list)
+    progress: ReadingProgress | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @property
+    def chapter_count(self) -> int:
+        return len(self.chapters)
+
+    @property
+    def downloaded_count(self) -> int:
+        return sum(1 for c in self.chapters if c.status == ChapterStatus.downloaded)
+
+
+class LibraryResponse(BaseModel):
+    comics: list[Comic]
+    total: int
+
+
+class Settings(BaseModel):
+    app_name: str = "MangoToon"
+    library_path: str = "./data/comics"
+    download_concurrency: int = Field(default=2, ge=1, le=5)
+    rate_limit_per_domain: float = 1.0
+    theme: str = "dark"
+    language: str = "en"
+    llm_provider: str = ""
+    llm_model: str = ""
+    llm_api_key: str = ""
+
+
+class APIError(BaseModel):
+    error: str
+    detail: str = ""
+    code: int = 400
