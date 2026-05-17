@@ -109,7 +109,9 @@
         });
         container.appendChild(chip);
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.warn("Failed to load sources:", err);
+    });
   }
 
   function loadPersistedState() {

@@ -34,3 +34,7 @@ AGENTS.md
 AGENTS.local.md
 TELEGRAM_HANDOFF.md
 docs/
+
+# Temporary agent prompts
+.tmp_prompts/
+codex_manga_app_phase_prompts/

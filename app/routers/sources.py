@@ -1,9 +1,13 @@
+import logging
+
 from pydantic import BaseModel
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
-from app.sources.base import UnsupportedSource
+from app.sources.base import SourceError
 from app.services.source_registry import source_registry
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["sources"])
 
@@ -39,7 +43,8 @@ async def detect_source(body: DetectRequest) -> DetectResponse:
             source=adapter.name,
             message=f"{adapter.name} title URL detected.",
         )
-    except UnsupportedSource:
+    except SourceError as exc:
+        logger.debug("Source detection failed for %s: %s", body.url, exc)
         return DetectResponse(
             supported=False,
             source="",

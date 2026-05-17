@@ -17,7 +17,7 @@ class SourceRegistry:
         for adapter in self.adapters:
             if adapter.can_handle(url):
                 return adapter
-        raise UnsupportedSource("Unsupported source. Paste a valid MangaDex title URL.")
+        raise UnsupportedSource("Unsupported source. Paste a valid title URL.")
 
     def get_adapter_for_comic(self, comic: Comic) -> SourceAdapter:
         source = comic.source.lower()
