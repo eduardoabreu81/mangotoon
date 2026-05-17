@@ -31,11 +31,12 @@
 | 8 | ⏳ Planned | Settings page — concurrency, rate limit, theme |
 | 9 | ⏳ Planned | Library UX upgrade — sidebar, filters, context menu |
 | 10 | ⏳ Planned | Download controls — pause, resume, cancel, retry |
-| 11 | ⏳ Planned | MangaDex quality — language filter, dedup, data saver |
-| 12 | ⏳ Planned | Import preview — metadata preview before download |
-| 13 | ⏳ Planned | Packaging — run.bat, Dockerfile |
-| 14 | ⏳ Planned | Backup and export |
-| 15 | ⏳ Planned | Second source adapter |
+| 11 | 📋 | **Source adapter quality layer** — MangaDex hardening, shared contract, capability matrix, second source readiness |
+| 12 | 📋 | **Universal import preview flow** — source-agnostic metadata preview before download |
+| 13 | 📋 | Packaging — run.bat, Dockerfile |
+| 14 | 📋 | Backup and export |
+| 15 | 📋 | Second source adapter |
+| 16 | 📋 | Multi-source normalization |
 | Documentation | ✅ Complete | AGENTS.md, PROJECT_LOG, TELEGRAM_HANDOFF |
 
 ---
@@ -110,11 +111,12 @@ Fizemos o rebuild completo do projeto ComicLib (antigo) para MangoToon. Implemen
 4. Phase 8: Settings page — full UI for configuration
 5. Phase 9: Library UX upgrade — sidebar, filters, context menu
 6. Phase 10: Download controls — pause, resume, cancel, retry
-7. Phase 11: MangaDex quality — language filter, dedup, data saver
-8. Phase 12: Import preview — metadata preview before download
+7. Phase 11: Source adapter quality layer — MangaDex hardening, shared contract
+8. Phase 12: Universal import preview flow — source-agnostic metadata preview
 9. Phase 13: Packaging — run.bat, Dockerfile
 10. Phase 14: Backup and export
 11. Phase 15: Second source adapter
+12. Phase 16: Multi-source normalization
 
 ---
 

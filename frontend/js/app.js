@@ -416,7 +416,7 @@
       if (card) {
         var comicId = card.dataset.comicId;
         if (comicId) {
-          console.log("Open comic:", comicId);
+          window.location.href = "/reader?comic=" + encodeURIComponent(comicId);
         }
       }
     });

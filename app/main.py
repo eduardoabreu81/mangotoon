@@ -10,6 +10,7 @@ from app import __version__
 from app.core.config import settings
 from app.routers.downloads import router as downloads_router
 from app.routers.library import router as library_router
+from app.routers.reader import router as reader_router
 from app.routers.settings import router as settings_router
 from app.services.download_manager import download_manager
 
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(library_router, prefix="/api")
     app.include_router(settings_router, prefix="/api")
     app.include_router(downloads_router, prefix="/api")
+    app.include_router(reader_router, prefix="/api")
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:
@@ -41,6 +43,10 @@ def create_app() -> FastAPI:
     @app.get("/")
     async def root() -> FileResponse:
         return FileResponse(FRONTEND_DIR / "index.html")
+
+    @app.get("/reader")
+    async def reader_page() -> FileResponse:
+        return FileResponse(FRONTEND_DIR / "reader.html")
 
     return app
 

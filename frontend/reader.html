@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangoToon — Reader</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="reader-page">
+
+  <!-- Top bar (auto-hides while reading) -->
+  <header id="reader-top" class="reader-top">
+    <a href="/" id="reader-back" class="reader-back-btn">← Library</a>
+    <div class="reader-info">
+      <span id="reader-title" class="reader-manga-title"></span>
+      <span id="reader-chapter-label" class="reader-chapter-label"></span>
+    </div>
+    <span id="reader-page-indicator" class="reader-page-indicator">— / —</span>
+  </header>
+
+  <!-- Reading area -->
+  <main id="reader-main" class="reader-main">
+
+    <!-- Tap zones (invisible overlays) -->
+    <div id="zone-prev" class="reader-zone reader-zone-prev" role="button"
+         aria-label="Previous page" tabindex="0"></div>
+    <div id="zone-center" class="reader-zone reader-zone-center" role="button"
+         aria-label="Toggle controls" tabindex="0"></div>
+    <div id="zone-next" class="reader-zone reader-zone-next" role="button"
+         aria-label="Next page" tabindex="0"></div>
+
+    <!-- Page image -->
+    <img id="reader-img" class="reader-img" src="" alt="Manga page" hidden>
+
+    <!-- Loading indicator -->
+    <div id="reader-loading" class="reader-loading" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+    </div>
+
+    <!-- Error / empty state -->
+    <div id="reader-error" class="reader-error" hidden>
+      <p id="reader-error-msg">No downloaded chapters available.</p>
+      <a href="/" class="btn-primary">Back to Library</a>
+    </div>
+
+  </main>
+
+  <!-- Bottom bar (auto-hides while reading) -->
+  <footer id="reader-bottom" class="reader-bottom">
+    <button id="btn-prev-chapter" class="reader-nav-btn" aria-label="Previous chapter">‹ Ch</button>
+    <select id="chapter-select" class="reader-chapter-select" aria-label="Select chapter"></select>
+    <div class="reader-progress-wrap">
+      <div id="reader-progress-bar" class="reader-progress-bar">
+        <div id="reader-progress-fill" class="reader-progress-fill"></div>
+      </div>
+    </div>
+    <button id="btn-next-chapter" class="reader-nav-btn" aria-label="Next chapter">Ch ›</button>
+  </footer>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/reader.js"></script>
+</body>
+</html>

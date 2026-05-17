@@ -10,7 +10,7 @@
 
 </div>
 
-MangoToon is a local-first manga reader built with FastAPI and a static vanilla JS frontend. Paste a MangaDex URL, fetch metadata, download chapters for offline reading, and track your progress — all stored locally in JSON files.
+MangoToon is a local-first manga reader built with FastAPI and a static vanilla JS frontend. Paste a supported source URL, fetch metadata, download chapters for offline reading, and track your progress — all stored locally in JSON files.
 
 No cloud sync. No accounts. No tracking. No React. No database.
 
@@ -58,7 +58,7 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - Download progress polling in frontend
 - Two-tier status lookup (in-memory job + metadata fallback)
 
-### Phase 3 — MangaDex Adapter
+### Phase 3 — Source Adapter (MangaDex as first supported source)
 - Source adapter protocol with error types
 - MangaDex metadata fetch (title, description, cover, chapters)
 - Source registry for future multi-source support
@@ -92,7 +92,7 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 0 | ✅ | Baseline — FastAPI, models, tests, static serving |
 | 1 | ✅ | Static frontend — dark theme, vanilla JS |
 | 2 | ✅ | Library & Settings API |
-| 3 | ✅ | MangaDex adapter — metadata fetch |
+| 3 | ✅ | Source adapter — MangaDex as first supported source |
 | 4 | ✅ | Download manager — async queue, retry, progress |
 | 4.5 | ✅ | **Stabilization — local page paths, partial download handling** |
 | 5 | 🔄 | **Reader MVP — offline chapter viewer, keyboard nav, progress save** |
@@ -101,19 +101,20 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 8 | 📋 | Settings page — concurrency, rate limit, theme |
 | 9 | 📋 | Library UX upgrade — sidebar, filters, context menu |
 | 10 | 📋 | Download controls — pause, resume, cancel, retry |
-| 11 | 📋 | MangaDex quality — language filter, dedup, data saver |
-| 12 | 📋 | Import preview — metadata preview before download |
+| 11 | 📋 | **Source adapter quality layer** — MangaDex hardening, shared contract, capability matrix |
+| 12 | 📋 | **Universal import preview flow** — source-agnostic metadata preview before download |
 | 13 | 📋 | Packaging — run.bat, Dockerfile |
 | 14 | 📋 | Backup and export |
 | 15 | 📋 | Second source adapter |
+| 16 | 📋 | Multi-source normalization |
 
 ---
 
 ## 🎯 Features
 
 ### 📚 Library
-- Add manga by MangaDex URL
-- Automatic metadata fetch and chapter download
+- Add manga by URL (MangaDex as first supported source)
+- Automatic metadata fetch and chapter download via source adapter
 - Search and sort library
 - Delete manga (removes local files)
 - Download progress polling with status badges
