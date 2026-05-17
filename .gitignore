@@ -25,3 +25,11 @@ site/
 
 uv.lock
 .DS_Store
+
+# ============================================
+# Agent-internal docs (never commit)
+# ============================================
+.github/copilot-instructions.md
+AGENTS.md
+AGENTS.local.md
+docs/
