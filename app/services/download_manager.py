@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from app.models.comic import Chapter, Comic
+from app.services.source_registry import source_registry
 from app.services.storage import (
     COMICS_DIR,
     load_comic_metadata,
@@ -14,7 +16,6 @@ from app.services.storage import (
     save_comic_metadata,
     save_library,
 )
-from app.sources.mangadex import MangaDexAdapter
 
 
 USER_AGENT = "MangoToon/0.1 (local manga reader)"
@@ -245,8 +246,13 @@ class DownloadManager:
         chapter_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            adapter = MangaDexAdapter()
-            page_urls = await adapter.get_chapter_pages(chapter_id)
+            metadata = load_comic_metadata(comic_id)
+            if not metadata:
+                raise RuntimeError(f"Comic '{comic_id}' not found.")
+            comic_model = Comic(**metadata)
+            chapter_model = Chapter(**chapter)
+            adapter = source_registry.get_adapter_for_comic(comic_model)
+            page_urls = await adapter.get_chapter_pages(comic_model, chapter_model)
         except Exception as exc:
             self._set_chapter_error(comic_id, chapter_id, str(exc))
             raise

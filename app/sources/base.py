@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from app.models.comic import Comic
+from app.models.comic import Chapter, Comic
 
 
 class SourceError(Exception):
@@ -35,5 +35,5 @@ class SourceAdapter(Protocol):
     async def fetch_comic(self, url: str) -> Comic:
         """Fetch and normalize comic metadata from the source."""
 
-    async def get_chapter_pages(self, chapter_id: str) -> list[str]:
+    async def get_chapter_pages(self, comic: Comic, chapter: Chapter) -> list[str]:
         """Return remote page image URLs for a chapter."""

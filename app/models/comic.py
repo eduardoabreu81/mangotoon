@@ -17,6 +17,7 @@ class ChapterStatus(str, Enum):
 
 class Chapter(BaseModel):
     chapter_id: str
+    source_chapter_id: str = ""
     title: str = ""
     chapter_number: str = ""
     volume: str = ""

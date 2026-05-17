@@ -58,7 +58,8 @@ class MangaDexAdapter:
             if close_client:
                 await client.aclose()
 
-    async def get_chapter_pages(self, chapter_id: str) -> list[str]:
+    async def get_chapter_pages(self, comic: Comic, chapter: Chapter) -> list[str]:
+        chapter_id = chapter.source_chapter_id or chapter.chapter_id
         close_client = self._client is None
         client = self._client or httpx.AsyncClient(timeout=20.0)
 
@@ -147,6 +148,7 @@ class MangaDexAdapter:
         attributes = chapter_data.get("attributes", {})
         return Chapter(
             chapter_id=chapter_data["id"],
+            source_chapter_id=chapter_data["id"],
             title=attributes.get("title") or "",
             chapter_number=str(attributes.get("chapter") or ""),
             volume=str(attributes.get("volume") or ""),

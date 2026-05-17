@@ -31,8 +31,7 @@ async def get_reader_data(comic_id: str) -> dict:
     for chapter in meta.get("chapters", []):
         if chapter.get("status") != "downloaded":
             continue
-        chapter_dir = storage.COMICS_DIR / comic_id / "chapters" / chapter["chapter_id"]
-        pages = sorted(path for path in chapter_dir.glob("*") if path.is_file()) if chapter_dir.exists() else []
+        pages = _chapter_page_paths(comic_id, chapter)
         chapters.append(
             {
                 "chapter_id": chapter.get("chapter_id", ""),
@@ -61,7 +60,14 @@ async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> Fi
     if not chapter_dir.is_relative_to(comics_root):
         raise HTTPException(status_code=400, detail="Invalid comic or chapter ID")
 
-    pages = sorted(path for path in chapter_dir.glob("*") if path.is_file()) if chapter_dir.exists() else []
+    meta = storage.load_comic_metadata(comic_id)
+    chapter = {}
+    if meta:
+        chapter = next(
+            (item for item in meta.get("chapters", []) if item.get("chapter_id") == chapter_id),
+            {},
+        )
+    pages = _chapter_page_paths(comic_id, chapter) if chapter else _fallback_chapter_pages(comic_id, chapter_id)
     index = page_number - 1
     if index < 0 or index >= len(pages):
         raise HTTPException(status_code=404, detail="Page not found")
@@ -70,6 +76,25 @@ async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> Fi
     if not page_path.exists():
         raise HTTPException(status_code=404, detail="Page not found")
     return FileResponse(page_path)
+
+
+def _chapter_page_paths(comic_id: str, chapter: dict) -> list:
+    local_pages = chapter.get("local_pages") or []
+    if local_pages:
+        pages = []
+        comics_root = storage.COMICS_DIR.resolve()
+        data_root = storage.COMICS_DIR.parent.resolve()
+        for page in local_pages:
+            page_path = (data_root / page).resolve()
+            if page_path.is_relative_to(comics_root) and page_path.is_file():
+                pages.append(page_path)
+        return pages
+    return _fallback_chapter_pages(comic_id, chapter.get("chapter_id", ""))
+
+
+def _fallback_chapter_pages(comic_id: str, chapter_id: str) -> list:
+    chapter_dir = storage.COMICS_DIR / comic_id / "chapters" / chapter_id
+    return sorted(path for path in chapter_dir.glob("*") if path.is_file()) if chapter_dir.exists() else []
 
 
 @router.get("/{comic_id}/progress")
