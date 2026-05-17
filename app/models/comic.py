@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class ChapterStatus(str, Enum):
@@ -60,10 +60,12 @@ class Comic(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+    @computed_field
     @property
     def chapter_count(self) -> int:
         return len(self.chapters)
 
+    @computed_field
     @property
     def downloaded_count(self) -> int:
         return sum(1 for c in self.chapters if c.status == ChapterStatus.downloaded)

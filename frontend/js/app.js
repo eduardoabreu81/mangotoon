@@ -220,6 +220,7 @@
       addModal.hidden = true;
       addForm && addForm.reset();
       addSourceDetected && (addSourceDetected.textContent = "");
+      showAddError("");
     }
   }
 
@@ -238,8 +239,60 @@
 
   function onAddSubmit(e) {
     e.preventDefault();
-    console.log("Add Manga not yet implemented — will be available in Phase 3");
-    closeAddModal();
+    var url = (addUrl.value || "").trim();
+
+    showAddError("");
+
+    if (!url) {
+      showAddError("Please enter a MangaDex URL.");
+      return;
+    }
+
+    var submitBtn = addForm.querySelector('[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Adding...";
+    }
+
+    API.post("/library/add", { url: url })
+      .then(function (data) {
+        if (data.duplicate) {
+          showAddError("Already in your library.");
+          setTimeout(function () {
+            closeAddModal();
+            loadLibrary();
+          }, 1500);
+        } else {
+          closeAddModal();
+          loadLibrary();
+        }
+      })
+      .catch(function (err) {
+        var msg = "Failed to add manga.";
+        if (err.detail) {
+          if (typeof err.detail === "string") {
+            msg = err.detail;
+          } else if (err.detail.error && err.detail.error.message) {
+            msg = err.detail.error.message;
+          }
+        } else if (err.message) {
+          msg = err.message;
+        }
+        showAddError(msg);
+      })
+      .finally(function () {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Add";
+        }
+      });
+  }
+
+  function showAddError(msg) {
+    var errEl = document.getElementById("add-error");
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.hidden = !msg;
   }
 
   gridEl &&

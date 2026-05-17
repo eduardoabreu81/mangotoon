@@ -499,6 +499,16 @@ h1 {
   background: var(--accent-hover);
 }
 
+.add-error-msg {
+  color: var(--danger);
+  font-size: 0.875rem;
+  margin: 0 0 12px 0;
+}
+
+.add-error-msg[hidden] {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .page-header,
   .toolbar {
