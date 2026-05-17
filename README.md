@@ -40,6 +40,19 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - **POST /api/library/import/confirm** — save with optional title override and auto-download toggle
 - **Legacy /api/library/add preserved** — backward compatible
 
+### Phase 16 — Download Queue Reliability
+
+- **Pause/resume/cancel fixes** — event-based pause with resume/cancel events per job
+- **Cancelled status** — chapters properly marked as `cancelled` instead of `error`
+- **Retry improvements** — works for `error`, `partial`, and `cancelled` chapters
+- **Race condition fixes** — `_remove_queued_items` uses new queue to avoid `task_done` mismatch
+
+### Phase 15 — Refresh Metadata
+
+- **Refresh action** — re-fetch source metadata without losing downloaded content
+- **POST /api/library/{comic_id}/refresh** — merge fresh metadata, preserve local state
+- **Frontend context menu** — "Refresh Metadata" option with toast feedback
+
 ### Phase 14 — Packaging
 
 - **Windows launcher** — `run.bat` checks Python/uv, installs dependencies, initializes data, starts the server, and opens the browser
@@ -107,10 +120,21 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - ImportConfirmResponse model
 - Legacy /api/library/add preserved as wrapper
 
+### Phase 16 — Download Queue Reliability
+- Pause/resume/cancel event-based system per job
+- Cancelled status for chapters (not error)
+- Retry works for error, partial, cancelled
+- Race condition fixes in queue management
+
+### Phase 15 — Refresh Metadata
+- POST /api/library/{comic_id}/refresh endpoint
+- Merge fresh metadata, preserve local state (local_pages, reading_progress)
+- Frontend context menu with toast feedback
+
 ### Phase 14 — Packaging
-- Added `run.bat` for Windows local startup
-- Added `Dockerfile` for containerized deployment
-- Added `docker-compose.yml` with local data persistence
+- run.bat for Windows startup
+- Dockerfile with uv-managed dependencies
+- docker-compose.yml with data persistence
 - Docker startup initializes local data before launching Uvicorn
 
 ### Phase 12 — Source Capability Matrix
@@ -207,9 +231,10 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 12 | ✅ | Source capability matrix — adapter capabilities exposed via API |
 | 13 | ✅ | Universal import preview flow — source-agnostic metadata preview before download |
 | 14 | ✅ | Packaging — run.bat, Dockerfile, docker-compose |
-| 15 | 📋 | Backup and export |
-| 16 | 📋 | Second source adapter |
-| 17 | 📋 | Multi-source normalization |
+| 15 | ✅ | Refresh metadata — re-fetch without losing downloads |
+| 16 | ✅ | Download queue reliability — pause/resume/cancel fixes |
+| 17 | 📋 | **Download integrity** — content-type validation, magic bytes |
+| 18 | 📋 | Backup and export |
 
 ---
 
