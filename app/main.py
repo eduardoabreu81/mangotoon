@@ -13,6 +13,7 @@ from app.routers.history import router as history_router
 from app.routers.library import router as library_router
 from app.routers.reader import router as reader_router
 from app.routers.settings import router as settings_router
+from app.routers.sources import router as sources_router
 from app.services.download_manager import download_manager
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(downloads_router, prefix="/api")
     app.include_router(reader_router, prefix="/api")
     app.include_router(history_router, prefix="/api")
+    app.include_router(sources_router, prefix="/api")
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:

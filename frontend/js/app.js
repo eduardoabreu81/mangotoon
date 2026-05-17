@@ -87,7 +87,29 @@
     }
 
     updateApiStatus();
+    loadSources();
     loadLibrary();
+  }
+
+  function loadSources() {
+    API.getSources().then(function (sources) {
+      var container = filterSourceEl;
+      if (!container) return;
+      sources.forEach(function (src) {
+        var key = src.name.toLowerCase();
+        var chip = document.createElement("button");
+        chip.className = "filter-chip";
+        chip.dataset.source = key;
+        chip.textContent = src.name;
+        chip.addEventListener("click", function () {
+          sourceFilter = key;
+          updateFilterChips(container, chip);
+          persistSidebarState();
+          applyFilters();
+        });
+        container.appendChild(chip);
+      });
+    }).catch(function () {});
   }
 
   function loadPersistedState() {
@@ -387,7 +409,7 @@
     showAddError("");
 
     if (!url) {
-      showAddError("Please enter a MangaDex URL.");
+      showAddError("Please enter a manga URL.");
       return;
     }
 
@@ -456,11 +478,15 @@
       addSourceDetected.textContent = "";
       return;
     }
-    if (url.indexOf("mangadex.org") !== -1) {
-      addSourceDetected.textContent = "Detected: MangaDex";
-    } else {
-      addSourceDetected.textContent = "Source not recognized";
-    }
+    API.detectSource(url).then(function (result) {
+      if (result.supported) {
+        addSourceDetected.textContent = "Detected: " + result.source;
+      } else {
+        addSourceDetected.textContent = "Source not recognized";
+      }
+    }).catch(function () {
+      addSourceDetected.textContent = "Could not detect source";
+    });
   }
 
   function showAddError(msg) {

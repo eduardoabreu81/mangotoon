@@ -1,0 +1,47 @@
+from pydantic import BaseModel
+
+from fastapi import APIRouter, HTTPException
+
+from app.sources.base import UnsupportedSource
+from app.services.source_registry import source_registry
+
+router = APIRouter(tags=["sources"])
+
+
+class DetectRequest(BaseModel):
+    url: str
+
+
+class DetectResponse(BaseModel):
+    supported: bool
+    source: str
+    message: str
+
+
+@router.get("/sources")
+async def list_sources() -> list[dict]:
+    return [
+        {
+            "name": adapter.name,
+            "domains": [],
+            "capabilities": {},
+        }
+        for adapter in source_registry.adapters
+    ]
+
+
+@router.post("/sources/detect")
+async def detect_source(body: DetectRequest) -> DetectResponse:
+    try:
+        adapter = source_registry.get_adapter(body.url)
+        return DetectResponse(
+            supported=True,
+            source=adapter.name,
+            message=f"{adapter.name} title URL detected.",
+        )
+    except UnsupportedSource:
+        return DetectResponse(
+            supported=False,
+            source="",
+            message="Unsupported source. Please provide a valid URL from a supported source.",
+        )

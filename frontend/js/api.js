@@ -55,5 +55,13 @@ const API = (function () {
     }
   }
 
-  return { get, post, del, ApiError, BASE };
+  function getSources() {
+    return get("/sources");
+  }
+
+  function detectSource(url) {
+    return post("/sources/detect", { url: url });
+  }
+
+  return { get, post, del, getSources, detectSource, ApiError, BASE };
 })();
