@@ -11,7 +11,7 @@
 - **Purpose:** Local-first manga reader and library manager
 - **Version:** v0.1.0
 - **Stack:** FastAPI + Pydantic (backend), Vanilla JS (frontend), JSON storage
-- **Status:** Phases 0-3 complete, Phase 4 in progress
+- **Status:** Phases 0-4 complete, Phase 5 in progress
 
 ---
 
@@ -23,8 +23,8 @@
 | Local storage and library API | ✅ Complete | Phase 1 |
 | Frontend library UI | ✅ Complete | Phase 2 |
 | MangaDex metadata adapter | ✅ Complete | Phase 3 |
-| Download manager | 🔄 In Progress | Phase 4 |
-| Reader | ⏳ Planned | Phase 5 |
+| Download manager | ✅ Complete | Phase 4 |
+| Reader | 🔄 In Progress | Phase 5 |
 | Settings page | ⏳ Planned | Phase 6 |
 | Polish and release readiness | ⏳ Planned | Phase 7 |
 | Documentation (AGENTS.md, PROJECT_LOG) | ✅ Complete | Ongoing |
@@ -95,10 +95,32 @@ Fizemos o rebuild completo do projeto ComicLib (antigo) para MangoToon. Implemen
 - Sempre validar APP_NAME = "MangoToon" em novos arquivos
 
 **Próximos passos / Next steps:**
-1. Phase 4: Download Manager — async queue, chapter/page download
-2. Phase 5: Reader — image serving, navigation, progress tracking
-3. Phase 6: Settings page — full UI for configuration
-4. Phase 7: Polish — error handling, mobile, performance
+1. Phase 5: Reader — image serving, navigation, progress tracking
+2. Phase 6: Settings page — full UI for configuration
+3. Phase 7: Polish — error handling, mobile, performance
+
+---
+
+## Phase 4 Log — 2026-05-17
+
+**Download Manager + Progress Polling**
+
+**Backend (dev_codex — gpt-5.5):**
+- Created `app/services/download_manager.py` — async queue, rate limiting, retry
+- Created `app/routers/downloads.py` — download status endpoints
+- Added `get_chapter_pages` to SourceAdapter protocol and MangaDexAdapter
+- Added `POST /api/library/{id}/download` and `/chapters/{chid}/download`
+- Wired lifespan and downloads router in `app/main.py`
+- Tests: 32 passed (23 existing + 9 new)
+
+**Frontend (dev_opencode — DeepSeek V4 Pro):**
+- Added download progress polling every 3 seconds
+- Added Download button to manga cards (visible on hover)
+- Added real-time progress bar and status badge updates
+- Added `status-queued` CSS badge variant
+- Preserved existing search, sort, delete, Add Manga functionality
+
+**Commit:** `10f18f0` — 9 files changed, +714/-3 lines
 
 ---
 
