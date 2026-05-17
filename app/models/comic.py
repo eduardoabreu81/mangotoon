@@ -24,6 +24,7 @@ class Chapter(BaseModel):
     pages: int = 0
     status: ChapterStatus = ChapterStatus.not_downloaded
     downloaded_pages: int = 0
+    local_pages: list[str] = Field(default_factory=list)
     error_message: str = ""
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

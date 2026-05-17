@@ -166,7 +166,9 @@ class DownloadManager:
             self._set_chapter_error(comic_id, chapter_id, str(exc))
             raise
 
+        local_pages: list[str] = []
         downloaded = 0
+        failed = False
         for idx, url in enumerate(page_urls, start=1):
             url_path = urlparse(url).path
             ext = Path(url_path).suffix or ".jpg"
@@ -174,16 +176,20 @@ class DownloadManager:
 
             if dest.exists():
                 downloaded += 1
+                local_pages.append(str(dest.relative_to(COMICS_DIR.parent)))
                 continue
 
             try:
                 content = await self._fetch_with_retry(url)
                 dest.write_bytes(content)
                 downloaded += 1
+                local_pages.append(str(dest.relative_to(COMICS_DIR.parent)))
             except Exception:
-                pass
+                failed = True
 
-        self._persist_chapter_downloaded(comic_id, chapter_id, len(page_urls), downloaded)
+        self._persist_chapter_downloaded(
+            comic_id, chapter_id, len(page_urls), downloaded, local_pages, failed
+        )
 
     async def _fetch_with_retry(self, url: str) -> bytes:
         host = urlparse(url).hostname or url
@@ -254,27 +260,30 @@ class DownloadManager:
         chapter_id: str,
         total_pages: int,
         downloaded_pages: int,
+        local_pages: list[str],
+        failed: bool,
     ) -> None:
         meta = load_comic_metadata(comic_id)
         if not meta:
             return
         for chapter in meta.get("chapters", []):
             if chapter.get("chapter_id") == chapter_id:
-                chapter["status"] = "downloaded" if downloaded_pages >= total_pages else "error"
+                if failed:
+                    chapter["status"] = "error" if downloaded_pages == 0 else "partial"
+                else:
+                    chapter["status"] = "downloaded" if downloaded_pages >= total_pages else "error"
                 chapter["pages"] = total_pages
                 chapter["downloaded_pages"] = downloaded_pages
+                chapter["local_pages"] = local_pages
         save_comic_metadata(comic_id, meta)
         self._update_library_counts(comic_id, meta)
 
     def _update_library_counts(self, comic_id: str, meta: dict[str, Any]) -> None:
         library = load_library()
-        chapters = meta.get("chapters", [])
-        total = len(chapters)
-        downloaded = sum(1 for chapter in chapters if chapter.get("status") == "downloaded")
         for comic in library.get("comics", []):
             if comic.get("comic_id") == comic_id:
-                comic["total_chapters"] = total
-                comic["downloaded_chapters"] = downloaded
+                comic["status"] = meta.get("status", "pending")
+                comic["chapters"] = meta.get("chapters", [])
                 break
         save_library(library)
 

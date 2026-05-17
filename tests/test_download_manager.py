@@ -159,13 +159,53 @@ def test_list_active_downloads(isolated_storage):
 def test_chapter_status_persisted_after_download(isolated_storage):
     manager = DownloadManager()
 
-    manager._persist_chapter_downloaded(COMIC_ID, "chapter-001", total_pages=3, downloaded_pages=3)
+    manager._persist_chapter_downloaded(COMIC_ID, "chapter-001", total_pages=3, downloaded_pages=3, local_pages=["comics/mangadex-test/chapters/chapter-001/001.jpg"], failed=False)
 
     meta = storage.load_comic_metadata(COMIC_ID)
     chapter = next(ch for ch in meta["chapters"] if ch["chapter_id"] == "chapter-001")
     assert chapter["status"] == "downloaded"
     assert chapter["pages"] == 3
     assert chapter["downloaded_pages"] == 3
+    assert chapter["local_pages"] == ["comics/mangadex-test/chapters/chapter-001/001.jpg"]
+
+
+def test_partial_download_marks_chapter_error(isolated_storage):
+    manager = DownloadManager()
+
+    manager._persist_chapter_downloaded(COMIC_ID, "chapter-001", total_pages=3, downloaded_pages=0, local_pages=[], failed=True)
+
+    meta = storage.load_comic_metadata(COMIC_ID)
+    chapter = next(ch for ch in meta["chapters"] if ch["chapter_id"] == "chapter-001")
+    assert chapter["status"] == "error"
+    assert chapter["downloaded_pages"] == 0
+
+
+def test_partial_download_marks_chapter_partial(isolated_storage):
+    manager = DownloadManager()
+
+    manager._persist_chapter_downloaded(COMIC_ID, "chapter-001", total_pages=3, downloaded_pages=1, local_pages=["comics/mangadex-test/chapters/chapter-001/001.jpg"], failed=True)
+
+    meta = storage.load_comic_metadata(COMIC_ID)
+    chapter = next(ch for ch in meta["chapters"] if ch["chapter_id"] == "chapter-001")
+    assert chapter["status"] == "partial"
+    assert chapter["downloaded_pages"] == 1
+    assert chapter["local_pages"] == ["comics/mangadex-test/chapters/chapter-001/001.jpg"]
+
+
+def test_library_response_validates_through_comic_model(isolated_storage):
+    manager = DownloadManager()
+    manager._persist_chapter_downloaded(COMIC_ID, "chapter-001", total_pages=3, downloaded_pages=3, local_pages=["a.jpg"], failed=False)
+
+    response = TestClient(app).get("/api/library")
+    assert response.status_code == 200
+    data = response.json()
+    assert "comics" in data
+    comic = data["comics"][0]
+    # Should validate through Comic Pydantic model
+    assert "chapter_count" in comic
+    assert "downloaded_count" in comic
+    assert comic["chapter_count"] == 2
+    assert comic["downloaded_count"] == 1
 
 
 @pytest.mark.asyncio
