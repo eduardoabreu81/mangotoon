@@ -12,20 +12,21 @@
 | p0 | ✅ Completo | Cleanup, baseline, tests |
 | p1 | ✅ Completo | Storage service, library/settings API |
 | p2 | ✅ Completo | Frontend grid, search, sort, modal |
-| p3 | ✅ Completo | MangaDex metadata adapter + Add Manga wiring |
+| p3 | ✅ Completo | Source adapter — MangaDex as first supported source |
 | p4 | ✅ Completo | Download manager + progress polling |
 | p4.5 | ✅ Completo | Stabilization — local page paths, partial download, docs |
-| p5 | 🔄 Next | Reader MVP |
-| p6 | ⏳ Pendente | Reader polish |
+| p5 | ✅ Completo | Reader MVP — offline viewer, keyboard nav, progress save |
+| p6 | 🔄 Next | Reader polish |
 | p7 | ⏳ Pendente | History page |
 | p8 | ⏳ Pendente | Settings page |
 | p9 | ⏳ Pendente | Library UX upgrade |
 | p10 | ⏳ Pendente | Download controls |
-| p11 | ⏳ Pendente | MangaDex quality |
-| p12 | ⏳ Pendente | Import preview |
+| p11 | ⏳ Pendente | Source adapter quality layer |
+| p12 | ⏳ Pendente | Universal import preview flow |
 | p13 | ⏳ Pendente | Packaging |
 | p14 | ⏳ Pendente | Backup and export |
 | p15 | ⏳ Pendente | Second source adapter |
+| p16 | ⏳ Pendente | Multi-source normalization |
 
 ---
 
@@ -54,7 +55,7 @@ tmux new-session -d -s dev_kimi -n kimi "kimi"
 
 ### Backend
 - `app/__init__.py` — v0.1.0
-- `app/main.py` — FastAPI com lifespan, routers
+- `app/main.py` — FastAPI com lifespan, routers, /reader route
 - `app/core/config.py` — Settings (APP_NAME = "MangoToon")
 - `app/models/comic.py` — Pydantic models (Comic, Chapter, ReadingProgress, Settings, etc.)
 - `app/services/storage.py` — JSON storage com atomic writes
@@ -65,16 +66,17 @@ tmux new-session -d -s dev_kimi -n kimi "kimi"
 - `app/routers/library.py` — GET/POST/DELETE /api/library
 - `app/routers/downloads.py` — GET /api/downloads/status
 - `app/routers/settings.py` — GET/POST /api/settings
+- `app/routers/reader.py` — Reader endpoints (data, image serving, progress)
 - `scripts/init_data.py` — Data initialization
 - `pyproject.toml` — Package config
 
 ### Frontend
 - `frontend/index.html` — Library page com modal Add Manga (wired)
-- `frontend/reader.html` — Placeholder
-- `frontend/css/style.css` — Dark theme, purple accent #9b59b6
+- `frontend/reader.html` — Reader page (full viewport, top/bottom bars)
+- `frontend/css/style.css` — Dark theme, purple accent #9b59b6, reader CSS
 - `frontend/js/api.js` — API client (GET/POST/DELETE)
-- `frontend/js/app.js` — Library grid, search, sort, delete, Add Manga, download polling
-- `frontend/js/reader.js` — Placeholder
+- `frontend/js/app.js` — Library grid, search, sort, delete, Add Manga, download polling, card click → reader
+- `frontend/js/reader.js` — Reader logic: keyboard nav, tap zones, chapter selector, progress save
 
 ### Tests
 - `tests/test_api.py` — Health e root
@@ -82,12 +84,13 @@ tmux new-session -d -s dev_kimi -n kimi "kimi"
 - `tests/test_library.py` — Library endpoints, settings, delete
 - `tests/test_mangadex_adapter.py` — Mocked MangaDex adapter tests
 - `tests/test_frontend_api.py` — Frontend API integration tests
-- `tests/test_download_manager.py` — Download manager tests (35 total)
+- `tests/test_download_manager.py` — Download manager tests
+- `tests/test_reader.py` — Reader tests (9 tests)
 
 ### Config
 - `.gitignore` — Python cache, .env, data, uv.lock
 - `.env.example` — Placeholders seguros
-- `README.md` — Public docs (atualizado com scope real)
+- `README.md` — Public docs (atualizado com scope real, source-agnostic language)
 - `AGENTS.md` — Agent guide
 - `docs/PROJECT_LOG.md` — Change log
 
@@ -95,7 +98,7 @@ tmux new-session -d -s dev_kimi -n kimi "kimi"
 
 ## Testes
 
-**Resultado:** 35/35 passam ✅ (Phase 4.5)
+**Resultado:** 44/44 passam ✅ (Phase 5)
 ```
 tests/test_api.py — 2 tests PASSED
 tests/test_download_manager.py — 12 tests PASSED
@@ -103,46 +106,28 @@ tests/test_frontend_api.py — 4 tests PASSED
 tests/test_init_data.py — 1 test PASSED
 tests/test_library.py — 9 tests PASSED
 tests/test_mangadex_adapter.py — 7 tests PASSED
+tests/test_reader.py — 9 tests PASSED
 ```
 
 ---
 
-## Próximo Passo: Phase 5 — Reader MVP
+## Próximo Passo: Phase 6 — Reader Polish
 
-**Objetivo:** ler capítulos baixados offline.
+**Objetivo:** deixar o Reader confortável.
 
-### Backend
-Criar `app/routers/reader.py`:
-- `GET /api/reader/{comic_id}` — dados mínimos para abrir reader
-- `GET /api/reader/{comic_id}/chapters/{chapter_id}` — capítulo com lista de páginas
-- `GET /api/reader/{comic_id}/chapters/{chapter_id}/pages/{page_index}` — serve imagem local
-- `GET /api/reader/{comic_id}/progress` — get reading progress
-- `POST /api/reader/{comic_id}/progress` — save reading progress
-
-### Frontend
-Criar `frontend/reader.html` + `frontend/js/reader.js`:
-- Abrir card da biblioteca no reader (`/reader?comic_id=...`)
-- Carregar último progresso
-- Navegar com: seta esquerda/direita, click/tap lateral, swipe mobile
-- Dropdown de capítulos
-- Auto-save de progresso
-- Quando chegar na última página: permitir próximo capítulo
-- Botão voltar para Library
-- Erro claro se capítulo não estiver baixado
-
-### UX mínima
-- Reader escuro, limpo, sem distração
-- Top bar: ← Library | Title | Chapter X | Page 4/24
-- Bottom bar: Chapter selector | progress bar
+### Funcionalidades
+- Auto-hide top/bottom bars
+- Fullscreen toggle
+- Fit modes: fit width, fit height, original
+- Zoom simples: +, -, reset
+- Mobile tap zones: esquerda 30% volta, direita 30% avança, centro alterna UI
+- Keyboard: Esc volta, F fullscreen, Home primeira página, End última página
+- Auto-advance para próximo capítulo
+- Mensagem "Chapter complete"
 
 ### Aceitação
-- Clicar no card abre reader
-- Reader mostra páginas locais reais
-- Não usa internet para ler capítulo baixado
-- Progresso persiste
-- Reabrir manga volta na página correta
-- Se capítulo não baixado, mostra mensagem útil
-- 35 testes existentes não quebram
+- Reader já parece produto, não demo técnica
+- 44 testes existentes não quebram
 
 ---
 
@@ -158,13 +143,14 @@ Criar `frontend/reader.html` + `frontend/js/reader.js`:
 - **UV cache fix:** `export UV_CACHE_DIR=/tmp/uv-cache` (Codex sandbox)
 - **Download behavior:** Add Manga = fetch metadata + auto-download. Download button = retry/resume.
 - **Chapter metadata:** Now includes `local_pages: list[str]` with ordered relative paths
+- **Source-agnostic:** MangaDex is "Source Adapter 001", not product identity
 
 ---
 
 ## Como Continuar pelo Telegram
 
 1. Envie: `"continuar MangoToon"`
-2. Ou: `"MangoToon Phase 5"`
+2. Ou: `"MangoToon Phase 6"`
 3. O Hermes vai carregar este contexto e continuar
 
 **Se precisar de ajuda:**
