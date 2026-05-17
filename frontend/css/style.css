@@ -814,6 +814,149 @@ h1 {
   background: var(--accent-hover);
 }
 
+/* === Settings Form === */
+
+.settings-form {
+  margin-top: 16px;
+}
+
+.settings-section {
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.settings-section legend {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0 8px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-row:first-of-type {
+  padding-top: 0;
+}
+
+.settings-row > span:first-child {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.settings-row select,
+.settings-row input[type="text"],
+.settings-row input[type="number"] {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  min-width: 120px;
+}
+
+.settings-row input[type="range"] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+
+.settings-value {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  min-width: 2em;
+  text-align: center;
+}
+
+.settings-toggle {
+  cursor: pointer;
+  position: relative;
+}
+
+.settings-toggle input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.settings-toggle input:checked + .toggle-slider {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.settings-toggle input:checked + .toggle-slider::after {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 8px 0;
+}
+
+/* Toast */
+
+.settings-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--success);
+  color: #1a1a1a;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  transition: opacity var(--transition-normal);
+}
+
+.settings-toast[hidden] {
+  display: none;
+}
+
+.settings-toast-error {
+  background: var(--danger);
+  color: #fff;
+}
+
 @media (max-width: 640px) {
   .page-header,
   .toolbar {

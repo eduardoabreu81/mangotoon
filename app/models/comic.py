@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, computed_field
 
@@ -82,7 +82,13 @@ class Settings(BaseModel):
     library_path: str = "./data/comics"
     download_concurrency: int = Field(default=2, ge=1, le=5)
     rate_limit_per_domain: float = 1.0
-    theme: str = "dark"
+    reader_default_fit: Literal["fit-width", "fit-height", "fit-screen", "original"] = "fit-width"
+    reader_auto_advance: bool = False
+    reader_auto_advance_delay: int = Field(default=4, ge=1, le=120)
+    reader_show_progress_bar: bool = True
+    download_auto_start: bool = True
+    download_default_chapters: Literal["all", "unread", "none"] = "all"
+    theme: Literal["dark", "light", "auto"] = "dark"
     language: str = "en"
     llm_provider: str = ""
     llm_model: str = ""

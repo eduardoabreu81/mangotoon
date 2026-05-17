@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangoToon — Settings</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Configuration</p>
+        <h1>Settings</h1>
+      </div>
+      <a href="/" class="status-pill">← Library</a>
+    </header>
+
+    <form id="settings-form" class="settings-form">
+
+      <!-- Downloads -->
+      <fieldset class="settings-section">
+        <legend>Downloads</legend>
+
+        <label class="settings-row settings-toggle">
+          <span>Auto-start downloads</span>
+          <input type="checkbox" id="set-download-auto-start" name="download_auto_start">
+          <span class="toggle-slider"></span>
+        </label>
+
+        <label class="settings-row" for="set-download-default-chapters">
+          <span>Default chapters</span>
+          <select id="set-download-default-chapters" name="download_default_chapters">
+            <option value="all">All chapters</option>
+            <option value="unread">Unread only</option>
+            <option value="none">None (manual)</option>
+          </select>
+        </label>
+
+        <label class="settings-row" for="set-download-concurrency">
+          <span>Download concurrency</span>
+          <input type="range" id="set-download-concurrency" name="download_concurrency" min="1" max="5" step="1">
+          <span id="set-download-concurrency-label" class="settings-value">2</span>
+        </label>
+
+        <label class="settings-row" for="set-rate-limit">
+          <span>Rate limit (seconds)</span>
+          <input type="number" id="set-rate-limit" name="rate_limit_per_domain" min="0.1" max="10" step="0.1">
+        </label>
+
+        <label class="settings-row" for="set-library-path">
+          <span>Library path</span>
+          <input type="text" id="set-library-path" name="library_path">
+        </label>
+      </fieldset>
+
+      <!-- Reader -->
+      <fieldset class="settings-section">
+        <legend>Reader</legend>
+
+        <label class="settings-row" for="set-reader-default-fit">
+          <span>Default fit mode</span>
+          <select id="set-reader-default-fit" name="reader_default_fit">
+            <option value="fit-screen">Fit screen</option>
+            <option value="fit-width">Fit width</option>
+            <option value="fit-height">Fit height</option>
+            <option value="original">Original size</option>
+          </select>
+        </label>
+
+        <label class="settings-row settings-toggle">
+          <span>Auto-advance chapters</span>
+          <input type="checkbox" id="set-reader-auto-advance" name="reader_auto_advance">
+          <span class="toggle-slider"></span>
+        </label>
+
+        <label class="settings-row" for="set-reader-auto-advance-delay">
+          <span>Auto-advance delay (seconds)</span>
+          <input type="range" id="set-reader-auto-advance-delay" name="reader_auto_advance_delay" min="1" max="120" step="1">
+          <span id="set-delay-label" class="settings-value">4</span>
+        </label>
+
+        <label class="settings-row settings-toggle">
+          <span>Show progress bar</span>
+          <input type="checkbox" id="set-reader-progress-bar" name="reader_show_progress_bar">
+          <span class="toggle-slider"></span>
+        </label>
+      </fieldset>
+
+      <!-- Appearance -->
+      <fieldset class="settings-section">
+        <legend>Appearance</legend>
+
+        <label class="settings-row" for="set-theme">
+          <span>Theme</span>
+          <select id="set-theme" name="theme">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="auto">Auto</option>
+          </select>
+        </label>
+
+        <label class="settings-row" for="set-language">
+          <span>Language</span>
+          <select id="set-language" name="language">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="ja">日本語</option>
+            <option value="pt-BR">Português (BR)</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <div class="settings-actions">
+        <button type="button" id="settings-cancel" class="btn-secondary">Cancel</button>
+        <button type="submit" class="btn-primary">Save Settings</button>
+      </div>
+    </form>
+
+    <!-- Toast -->
+    <div id="settings-toast" class="settings-toast" hidden>
+      <span id="settings-toast-msg">Settings saved.</span>
+    </div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/settings.js"></script>
+</body>
+</html>
