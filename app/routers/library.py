@@ -78,6 +78,16 @@ async def filter_library(
     return LibraryResponse(comics=normalized, total=len(normalized))
 
 
+@router.get("/{comic_id}/detail")
+async def get_library_detail(comic_id: str) -> dict:
+    metadata = load_comic_metadata(comic_id)
+    if metadata is None:
+        metadata = get_comic(comic_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found")
+    return _build_detail_response(metadata)
+
+
 @router.post("/add", response_model=AddComicResponse)
 async def add_comic_from_source(payload: AddComicRequest) -> AddComicResponse:
     comic, duplicate = await _confirm_import(payload.url, auto_download=True)
@@ -246,6 +256,32 @@ def _resolve_import_source(body: dict):
     except UnsupportedSource as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return url, adapter, source_id
+
+
+def _build_detail_response(metadata: dict) -> dict:
+    detail = dict(metadata)
+    detail["cover_local"] = detail.get("cover_local", "")
+    detail["reading_progress"] = detail.get("reading_progress") or detail.get("progress")
+
+    completed_chapters = set(detail.get("completed_chapters") or [])
+    reading_progress = detail.get("reading_progress") or {}
+    current_chapter_id = reading_progress.get("chapter_id") if isinstance(reading_progress, dict) else ""
+    detail["chapters"] = [
+        _enrich_detail_chapter(chapter, completed_chapters, current_chapter_id)
+        for chapter in detail.get("chapters", [])
+    ]
+    return detail
+
+
+def _enrich_detail_chapter(chapter: dict, completed_chapters: set[str], current_chapter_id: str) -> dict:
+    enriched = dict(chapter)
+    chapter_id = enriched.get("chapter_id", "")
+    enriched["status"] = enriched.get("status", "not_downloaded")
+    enriched["downloaded_pages"] = enriched.get("downloaded_pages", 0)
+    enriched["local_pages"] = enriched.get("local_pages", [])
+    enriched["completed"] = chapter_id in completed_chapters
+    enriched["is_current"] = bool(chapter_id and chapter_id == current_chapter_id)
+    return enriched
 
 
 async def _fetch_import_metadata(adapter, url: str) -> Comic:

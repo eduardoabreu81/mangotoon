@@ -50,6 +50,20 @@ async def get_reader_data(comic_id: str) -> dict:
     }
 
 
+@router.get("/{comic_id}")
+async def get_reader_chapters(comic_id: str) -> dict:
+    meta = storage.load_comic_metadata(comic_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
+
+    return {
+        "comic_id": comic_id,
+        "title": meta.get("title", ""),
+        "chapters": [_reader_chapter_summary(comic_id, chapter) for chapter in meta.get("chapters", [])],
+        "progress": meta.get("reading_progress"),
+    }
+
+
 @router.get("/{comic_id}/{chapter_id}/{page_number}")
 async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> FileResponse:
     if not SAFE_ID_RE.match(comic_id) or not SAFE_ID_RE.match(chapter_id):
@@ -90,6 +104,20 @@ def _chapter_page_paths(comic_id: str, chapter: dict) -> list:
                 pages.append(page_path)
         return pages
     return _fallback_chapter_pages(comic_id, chapter.get("chapter_id", ""))
+
+
+def _reader_chapter_summary(comic_id: str, chapter: dict) -> dict:
+    status = chapter.get("status", "not_downloaded")
+    pages = _chapter_page_paths(comic_id, chapter) if status == "downloaded" else []
+    return {
+        "chapter_id": chapter.get("chapter_id", ""),
+        "chapter_number": chapter.get("chapter_number", ""),
+        "title": chapter.get("title", ""),
+        "pages": len(pages) if pages else chapter.get("pages", 0),
+        "volume": chapter.get("volume", ""),
+        "status": status,
+        "downloaded_pages": chapter.get("downloaded_pages", 0),
+    }
 
 
 def _fallback_chapter_pages(comic_id: str, chapter_id: str) -> list:
