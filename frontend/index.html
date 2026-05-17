@@ -8,10 +8,55 @@
 </head>
 <body>
   <main class="page-shell">
+
+    <!-- Sidebar overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" hidden></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar" hidden>
+      <div class="sidebar-header">
+        <h2>Filters &amp; Sort</h2>
+        <button id="sidebar-close" class="sidebar-close-btn" aria-label="Close sidebar">&times;</button>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-label">Status</h3>
+        <div class="filter-chips" id="filter-status">
+          <button class="filter-chip active" data-status="all">All</button>
+          <button class="filter-chip" data-status="reading">Reading</button>
+          <button class="filter-chip" data-status="completed">Completed</button>
+          <button class="filter-chip" data-status="downloaded">Downloaded</button>
+          <button class="filter-chip" data-status="pending">Pending</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-label">Source</h3>
+        <div class="filter-chips" id="filter-source">
+          <button class="filter-chip active" data-source="all">All</button>
+          <button class="filter-chip" data-source="mangadex">MangaDex</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-label">Sort</h3>
+        <select id="sidebar-sort" class="sidebar-select" aria-label="Sort library">
+          <option value="added">Recently Added</option>
+          <option value="title">Title A-Z</option>
+          <option value="read">Last Read</option>
+          <option value="progress">Download Progress</option>
+        </select>
+      </div>
+
+      <div class="sidebar-footer">
+        <span id="sidebar-count" class="sidebar-count"></span>
+      </div>
+    </aside>
+
     <header class="page-header">
       <div>
         <p class="eyebrow">Local Library</p>
-        <h1>MangoToon</h1>
+        <h1>MangaToon</h1>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <a href="/settings" class="status-pill">Settings</a>
@@ -21,13 +66,8 @@
     </header>
 
     <section class="toolbar" aria-label="Library controls">
+      <button id="btn-sidebar-toggle" class="btn-sidebar-toggle" type="button" aria-label="Toggle filters">☰ Filters</button>
       <input id="library-search" type="search" placeholder="Search library..." aria-label="Search library">
-      <select id="library-sort" aria-label="Sort library">
-        <option value="added">Recently Added</option>
-        <option value="title">Title A-Z</option>
-        <option value="read">Last Read</option>
-        <option value="progress">Download Progress</option>
-      </select>
       <button id="btn-add" type="button">Add Manga</button>
     </section>
 
@@ -63,6 +103,16 @@
         </form>
       </div>
     </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu" hidden>
+      <button class="context-menu-item" data-action="read">Read</button>
+      <button class="context-menu-item" data-action="download">Download</button>
+      <button class="context-menu-item" data-action="mark-completed">Mark Completed</button>
+      <hr class="context-menu-divider">
+      <button class="context-menu-item context-menu-danger" data-action="delete">Delete</button>
+    </div>
+
   </main>
 
   <script src="/static/js/api.js"></script>

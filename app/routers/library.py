@@ -2,14 +2,23 @@
 
 import asyncio
 from urllib.parse import urlparse
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from app.models.comic import Comic, LibraryResponse
 from app.services.download_manager import download_manager
 from app.services.source_registry import source_registry
-from app.services.storage import add_comic, delete_comic, get_comic, load_library, save_comic_metadata
+from app.services.storage import (
+    add_comic,
+    delete_comic,
+    get_comic,
+    load_comic_metadata,
+    load_library,
+    save_comic_metadata,
+    save_library,
+)
 from app.sources.base import InvalidSourceUrl, SourceApiError, SourceNotFound, UnsupportedSource
 
 router = APIRouter(prefix="/library", tags=["library"])
@@ -24,11 +33,34 @@ class AddComicResponse(BaseModel):
     duplicate: bool = False
 
 
+class UpdateComicStatusRequest(BaseModel):
+    status: Literal["reading", "completed"]
+
+
 @router.get("", response_model=LibraryResponse)
 async def list_library() -> LibraryResponse:
     library = load_library()
     comics = [Comic(**c) for c in library.get("comics", [])]
     return LibraryResponse(comics=comics, total=len(comics))
+
+
+@router.get("/filter", response_model=LibraryResponse)
+async def filter_library(
+    status: Literal["reading", "completed", "downloaded", "pending"] | None = None,
+    source: str | None = None,
+    sort: str = Query(default="added"),
+) -> LibraryResponse:
+    comics = load_library().get("comics", [])
+
+    if status:
+        comics = [comic for comic in comics if _matches_status_filter(comic, status)]
+    if source:
+        source_key = source.lower()
+        comics = [comic for comic in comics if (comic.get("source") or "").lower() == source_key]
+
+    comics = _sort_comics(comics, sort)
+    normalized = [Comic(**comic) for comic in comics]
+    return LibraryResponse(comics=normalized, total=len(normalized))
 
 
 @router.post("/add", response_model=AddComicResponse)
@@ -80,6 +112,28 @@ async def remove_comic(comic_id: str) -> dict[str, str]:
     return {"message": f"Comic '{comic_id}' deleted"}
 
 
+@router.post("/{comic_id}/status", response_model=Comic)
+async def update_comic_status(comic_id: str, payload: UpdateComicStatusRequest) -> Comic:
+    metadata = load_comic_metadata(comic_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
+
+    metadata["status"] = payload.status
+    save_comic_metadata(comic_id, metadata)
+
+    library = load_library()
+    found = False
+    for comic in library.get("comics", []):
+        if comic.get("comic_id") == comic_id:
+            comic["status"] = payload.status
+            found = True
+            break
+    if found:
+        save_library(library)
+
+    return Comic(**metadata)
+
+
 @router.post("/{comic_id}/download")
 async def download_comic(comic_id: str) -> dict:
     data = get_comic(comic_id)
@@ -115,3 +169,41 @@ def _find_duplicate(url: str, source_name: str, source_id: str) -> dict | None:
         if same_source_id or same_url:
             return comic
     return None
+
+
+def _matches_status_filter(comic: dict, status: str) -> bool:
+    comic_status = comic.get("status")
+    if status == "completed":
+        return comic_status in {"completed", "complete"}
+    if status == "downloaded":
+        return _downloaded_count(comic) > 0 or comic_status in {"downloaded", "complete", "completed"}
+    return comic_status == status
+
+
+def _sort_comics(comics: list[dict], sort: str) -> list[dict]:
+    sorted_comics = list(comics)
+    if sort == "title":
+        sorted_comics.sort(key=lambda comic: (comic.get("title") or "").lower())
+    elif sort == "updated":
+        sorted_comics.sort(key=lambda comic: comic.get("updated_at") or "", reverse=True)
+    elif sort == "progress":
+        sorted_comics.sort(key=_download_progress, reverse=True)
+    elif sort == "status":
+        sorted_comics.sort(key=lambda comic: comic.get("status") or "")
+    else:
+        sorted_comics.sort(key=lambda comic: comic.get("created_at") or "", reverse=True)
+    return sorted_comics
+
+
+def _downloaded_count(comic: dict) -> int:
+    if "downloaded_count" in comic:
+        return int(comic.get("downloaded_count") or 0)
+    return sum(1 for chapter in comic.get("chapters", []) if chapter.get("status") == "downloaded")
+
+
+def _download_progress(comic: dict) -> float:
+    chapters = comic.get("chapters", [])
+    total = int(comic.get("chapter_count") or len(chapters) or 0)
+    if total == 0:
+        return 0.0
+    return _downloaded_count(comic) / total

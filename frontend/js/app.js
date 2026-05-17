@@ -6,6 +6,10 @@
   var library = [];
   var filtered = [];
 
+  var statusFilter = "all";
+  var sourceFilter = "all";
+  var sortBy = "added";
+
   var statusEl = document.getElementById("api-status");
   var gridEl = document.getElementById("library-grid");
   var emptyEl = document.getElementById("empty-library");
@@ -13,12 +17,23 @@
   var searchEl = document.getElementById("library-search");
   var addBtn = document.getElementById("btn-add");
 
-  var sortEl = document.getElementById("library-sort");
+  var sidebarEl = document.getElementById("sidebar");
+  var sidebarOverlay = document.getElementById("sidebar-overlay");
+  var sidebarToggle = document.getElementById("btn-sidebar-toggle");
+  var sidebarClose = document.getElementById("sidebar-close");
+  var sidebarSort = document.getElementById("sidebar-sort");
+  var sidebarCount = document.getElementById("sidebar-count");
+  var filterStatusEl = document.getElementById("filter-status");
+  var filterSourceEl = document.getElementById("filter-source");
+
   var addModal = document.getElementById("add-modal");
   var addForm = document.getElementById("add-form");
   var addCancel = document.getElementById("add-cancel");
   var addUrl = document.getElementById("add-url");
   var addSourceDetected = document.getElementById("add-source-detected");
+
+  var contextMenu = document.getElementById("context-menu");
+  var contextComicId = null;
 
   var _pollTimers = {};
 
@@ -27,14 +42,123 @@
   });
 
   function init() {
-    searchEl && searchEl.addEventListener("input", onSearch);
-    sortEl && sortEl.addEventListener("change", onSort);
+    loadPersistedState();
+
+    searchEl && searchEl.addEventListener("input", applyFilters);
     addBtn && addBtn.addEventListener("click", openAddModal);
+
+    sidebarToggle && sidebarToggle.addEventListener("click", toggleSidebar);
+    sidebarClose && sidebarClose.addEventListener("click", closeSidebar);
+    sidebarOverlay && sidebarOverlay.addEventListener("click", closeSidebar);
+    sidebarSort && sidebarSort.addEventListener("change", function () {
+      sortBy = sidebarSort.value;
+      persistSidebarState();
+      applyFilters();
+    });
+
+    filterStatusEl && filterStatusEl.addEventListener("click", function (e) {
+      var chip = e.target.closest("[data-status]");
+      if (!chip) return;
+      statusFilter = chip.dataset.status;
+      updateFilterChips(filterStatusEl, chip);
+      persistSidebarState();
+      applyFilters();
+    });
+
+    filterSourceEl && filterSourceEl.addEventListener("click", function (e) {
+      var chip = e.target.closest("[data-source]");
+      if (!chip) return;
+      sourceFilter = chip.dataset.source;
+      updateFilterChips(filterSourceEl, chip);
+      persistSidebarState();
+      applyFilters();
+    });
+
     addCancel && addCancel.addEventListener("click", closeAddModal);
     addForm && addForm.addEventListener("submit", onAddSubmit);
     addUrl && addUrl.addEventListener("input", detectSource);
+
+    if (contextMenu) {
+      contextMenu.addEventListener("click", handleContextAction);
+      document.addEventListener("click", hideContextMenu);
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") hideContextMenu();
+      });
+    }
+
     updateApiStatus();
     loadLibrary();
+  }
+
+  function loadPersistedState() {
+    try {
+      var raw = localStorage.getItem("mangotoon_sidebar");
+      if (raw) {
+        var state = JSON.parse(raw);
+        statusFilter = state.statusFilter || "all";
+        sourceFilter = state.sourceFilter || "all";
+        sortBy = state.sortBy || "added";
+      }
+    } catch (e) {}
+  }
+
+  function persistSidebarState() {
+    try {
+      localStorage.setItem(
+        "mangotoon_sidebar",
+        JSON.stringify({
+          statusFilter: statusFilter,
+          sourceFilter: sourceFilter,
+          sortBy: sortBy,
+        })
+      );
+    } catch (e) {}
+  }
+
+  function syncSidebarUI() {
+    if (sidebarSort) sidebarSort.value = sortBy;
+
+    if (filterStatusEl) {
+      var chips = filterStatusEl.querySelectorAll("[data-status]");
+      chips.forEach(function (c) {
+        c.classList.toggle("active", c.dataset.status === statusFilter);
+      });
+    }
+
+    if (filterSourceEl) {
+      var srcChips = filterSourceEl.querySelectorAll("[data-source]");
+      srcChips.forEach(function (c) {
+        c.classList.toggle("active", c.dataset.source === sourceFilter);
+      });
+    }
+  }
+
+  function updateFilterChips(container, activeChip) {
+    var chips = container.querySelectorAll(".filter-chip");
+    chips.forEach(function (c) {
+      c.classList.toggle("active", c === activeChip);
+    });
+  }
+
+  function toggleSidebar() {
+    var open = sidebarEl && !sidebarEl.hidden;
+    if (open) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
+
+  function openSidebar() {
+    if (sidebarEl) sidebarEl.hidden = false;
+    if (sidebarOverlay) sidebarOverlay.hidden = false;
+    document.body.classList.add("sidebar-open");
+  }
+
+  function closeSidebar() {
+    if (sidebarEl) sidebarEl.hidden = true;
+    if (sidebarOverlay) sidebarOverlay.hidden = true;
+    document.body.classList.remove("sidebar-open");
   }
 
   function updateApiStatus() {
@@ -60,17 +184,8 @@
     API.get("/library")
       .then(function (data) {
         library = data.comics || [];
-        filtered = library.slice();
-        renderGrid();
-        library.forEach(function (comic) {
-          if (
-            comic.status === "queued" ||
-            comic.status === "downloading" ||
-            comic.status === "metadata_fetching"
-          ) {
-            startPolling(comic.comic_id);
-          }
-        });
+        syncSidebarUI();
+        applyFilters();
       })
       .catch(function (err) {
         console.error("Failed to load library:", err);
@@ -83,22 +198,99 @@
       });
   }
 
+  function applyFilters() {
+    var result = library.slice();
+
+    var query = (searchEl && searchEl.value || "").toLowerCase().trim();
+    if (query) {
+      result = result.filter(function (comic) {
+        return (comic.title || "").toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    if (statusFilter && statusFilter !== "all") {
+      result = result.filter(function (comic) {
+        var s = comic.status || "";
+        switch (statusFilter) {
+          case "reading":
+            return s === "downloading" || s === "queued" || s === "metadata_fetching";
+          case "completed":
+            return s === "complete";
+          case "downloaded":
+            return s === "complete" || s === "partial" || (comic.downloaded_count > 0);
+          case "pending":
+            return s === "pending";
+          default:
+            return true;
+        }
+      });
+    }
+
+    if (sourceFilter && sourceFilter !== "all") {
+      result = result.filter(function (comic) {
+        return (comic.source || "").toLowerCase() === sourceFilter;
+      });
+    }
+
+    switch (sortBy) {
+      case "title":
+        result.sort(function (a, b) {
+          return (a.title || "").localeCompare(b.title || "");
+        });
+        break;
+      case "read":
+        result.sort(function (a, b) {
+          var aTime = a.progress ? new Date(a.progress.updated_at).getTime() : 0;
+          var bTime = b.progress ? new Date(b.progress.updated_at).getTime() : 0;
+          return bTime - aTime;
+        });
+        break;
+      case "progress":
+        result.sort(function (a, b) {
+          var aPct = a.chapter_count > 0 ? a.downloaded_count / a.chapter_count : 0;
+          var bPct = b.chapter_count > 0 ? b.downloaded_count / b.chapter_count : 0;
+          return bPct - aPct;
+        });
+        break;
+      case "added":
+      default:
+        result.sort(function (a, b) {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        break;
+    }
+
+    filtered = result;
+    renderGrid();
+  }
+
   function renderGrid() {
     if (!gridEl) return;
 
     if (filtered.length === 0) {
       gridEl.innerHTML = "";
       showEmpty();
-      return;
+    } else {
+      hideEmpty();
+      gridEl.innerHTML = filtered
+        .map(function (comic) {
+          return renderCard(comic);
+        })
+        .join("");
     }
 
-    hideEmpty();
+    updateCount();
+  }
 
-    gridEl.innerHTML = filtered
-      .map(function (comic) {
-        return renderCard(comic);
-      })
-      .join("");
+  function updateCount() {
+    if (!sidebarCount) return;
+    var total = library.length;
+    var showing = filtered.length;
+    if (total === showing) {
+      sidebarCount.textContent = showing + " manga";
+    } else {
+      sidebarCount.textContent = showing + " / " + total + " manga";
+    }
   }
 
   function renderCard(comic) {
@@ -178,81 +370,6 @@
     );
   }
 
-  function onSearch() {
-    var query = (searchEl.value || "").toLowerCase().trim();
-    if (!query) {
-      filtered = library.slice();
-    } else {
-      filtered = library.filter(function (comic) {
-        return (comic.title || "").toLowerCase().indexOf(query) !== -1;
-      });
-    }
-    renderGrid();
-  }
-
-  function onSort() {
-    var sortBy = sortEl.value;
-    var sorted = filtered.slice();
-    switch (sortBy) {
-      case "title":
-        sorted.sort(function (a, b) {
-          return (a.title || "").localeCompare(b.title || "");
-        });
-        break;
-      case "read":
-        sorted.sort(function (a, b) {
-          var aTime = a.progress ? new Date(a.progress.updated_at).getTime() : 0;
-          var bTime = b.progress ? new Date(b.progress.updated_at).getTime() : 0;
-          return bTime - aTime;
-        });
-        break;
-      case "progress":
-        sorted.sort(function (a, b) {
-          var aPct = a.chapter_count > 0 ? (a.downloaded_count / a.chapter_count) : 0;
-          var bPct = b.chapter_count > 0 ? (b.downloaded_count / b.chapter_count) : 0;
-          return bPct - aPct;
-        });
-        break;
-      case "added":
-      default:
-        sorted.sort(function (a, b) {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        });
-        break;
-    }
-    filtered = sorted;
-    renderGrid();
-  }
-
-  function openAddModal() {
-    if (addModal) {
-      addModal.hidden = false;
-      addUrl && addUrl.focus();
-    }
-  }
-
-  function closeAddModal() {
-    if (addModal) {
-      addModal.hidden = true;
-      addForm && addForm.reset();
-      addSourceDetected && (addSourceDetected.textContent = "");
-      showAddError("");
-    }
-  }
-
-  function detectSource() {
-    var url = addUrl.value.trim();
-    if (!url) {
-      addSourceDetected.textContent = "";
-      return;
-    }
-    if (url.indexOf("mangadex.org") !== -1) {
-      addSourceDetected.textContent = "Detected: MangaDex";
-    } else {
-      addSourceDetected.textContent = "Source not recognized";
-    }
-  }
-
   function onAddSubmit(e) {
     e.preventDefault();
     var url = (addUrl.value || "").trim();
@@ -305,6 +422,42 @@
           submitBtn.textContent = "Add";
         }
       });
+  }
+
+  function openAddModal() {
+    if (addModal) {
+      addModal.hidden = false;
+      addUrl && addUrl.focus();
+    }
+  }
+
+  function closeAddModal() {
+    if (addModal) {
+      addModal.hidden = true;
+      addForm && addForm.reset();
+      addSourceDetected && (addSourceDetected.textContent = "");
+      showAddError("");
+    }
+  }
+
+  function detectSource() {
+    var url = addUrl.value.trim();
+    if (!url) {
+      addSourceDetected.textContent = "";
+      return;
+    }
+    if (url.indexOf("mangadex.org") !== -1) {
+      addSourceDetected.textContent = "Detected: MangaDex";
+    } else {
+      addSourceDetected.textContent = "Source not recognized";
+    }
+  }
+
+  function showAddError(msg) {
+    var errEl = document.getElementById("add-error");
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.hidden = !msg;
   }
 
   function triggerDownload(comicId) {
@@ -383,11 +536,74 @@
     }
   }
 
-  function showAddError(msg) {
-    var errEl = document.getElementById("add-error");
-    if (!errEl) return;
-    errEl.textContent = msg;
-    errEl.hidden = !msg;
+  // Context menu
+
+  gridEl &&
+    gridEl.addEventListener("contextmenu", function (e) {
+      var card = e.target.closest(".comic-card");
+      if (!card) return;
+
+      e.preventDefault();
+      contextComicId = card.dataset.comicId;
+
+      if (!contextMenu || !contextComicId) return;
+
+      contextMenu.style.top = e.clientY + "px";
+      contextMenu.style.left = e.clientX + "px";
+      contextMenu.hidden = false;
+    });
+
+  function hideContextMenu() {
+    if (contextMenu) {
+      contextMenu.hidden = true;
+      contextComicId = null;
+    }
+  }
+
+  function handleContextAction(e) {
+    var actionBtn = e.target.closest("[data-action]");
+    if (!actionBtn) return;
+    var action = actionBtn.dataset.action;
+
+    hideContextMenu();
+
+    if (!contextComicId) return;
+
+    switch (action) {
+      case "read":
+        window.location.href = "/reader?comic=" + encodeURIComponent(contextComicId);
+        break;
+      case "download":
+        triggerDownload(contextComicId);
+        break;
+      case "delete":
+        deleteComic(contextComicId, null);
+        break;
+      case "mark-completed":
+        markCompleted(contextComicId);
+        break;
+    }
+  }
+
+  function markCompleted(comicId) {
+    var comic = null;
+    for (var i = 0; i < library.length; i++) {
+      if (library[i].comic_id === comicId) {
+        comic = library[i];
+        break;
+      }
+    }
+    if (!comic) return;
+
+    API.post("/library/" + encodeURIComponent(comicId) + "/update", {
+      status: "complete",
+    })
+      .then(function () {
+        loadLibrary();
+      })
+      .catch(function (err) {
+        console.error("Failed to update status:", err);
+      });
   }
 
   gridEl &&
@@ -440,7 +656,7 @@
         library = library.filter(function (c) {
           return c.comic_id !== comicId;
         });
-        onSearch();
+        applyFilters();
       })
       .catch(function (err) {
         console.error("Delete failed:", err);
