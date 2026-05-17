@@ -497,6 +497,31 @@ h1 {
   min-height: 1.2em;
 }
 
+.source-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.cap-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(155, 89, 182, 0.15);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.cap-warning {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(243, 156, 18, 0.15);
+  color: var(--warning);
+  white-space: nowrap;
+}
+
 .modal-actions {
   display: flex;
   gap: 12px;

@@ -26,11 +26,14 @@
   var filterStatusEl = document.getElementById("filter-status");
   var filterSourceEl = document.getElementById("filter-source");
 
+  var _sourcesCache = [];
+
   var addModal = document.getElementById("add-modal");
   var addForm = document.getElementById("add-form");
   var addCancel = document.getElementById("add-cancel");
   var addUrl = document.getElementById("add-url");
   var addSourceDetected = document.getElementById("add-source-detected");
+  var addCapabilities = document.getElementById("add-source-capabilities");
 
   var contextMenu = document.getElementById("context-menu");
   var contextComicId = null;
@@ -93,6 +96,7 @@
 
   function loadSources() {
     API.getSources().then(function (sources) {
+      _sourcesCache = sources;
       var container = filterSourceEl;
       if (!container) return;
       sources.forEach(function (src) {
@@ -470,6 +474,7 @@
       addModal.hidden = true;
       addForm && addForm.reset();
       addSourceDetected && (addSourceDetected.textContent = "");
+      addCapabilities && (addCapabilities.innerHTML = "");
       showAddError("");
     }
   }
@@ -478,17 +483,63 @@
     var url = addUrl.value.trim();
     if (!url) {
       addSourceDetected.textContent = "";
+      addCapabilities && (addCapabilities.innerHTML = "");
       return;
     }
     API.detectSource(url).then(function (result) {
       if (result.supported) {
         addSourceDetected.textContent = "Detected: " + result.source;
+        renderCapabilities(result.source);
       } else {
         addSourceDetected.textContent = "Source not recognized";
+        addCapabilities && (addCapabilities.innerHTML = "");
       }
     }).catch(function () {
       addSourceDetected.textContent = "Could not detect source";
+      addCapabilities && (addCapabilities.innerHTML = "");
     });
+  }
+
+  function renderCapabilities(sourceName) {
+    if (!addCapabilities) return;
+    addCapabilities.innerHTML = "";
+
+    var cached = null;
+    for (var i = 0; i < _sourcesCache.length; i++) {
+      if (_sourcesCache[i].name === sourceName) {
+        cached = _sourcesCache[i];
+        break;
+      }
+    }
+
+    if (!cached || !cached.capabilities) return;
+
+    var caps = cached.capabilities;
+    var badges = [];
+
+    if (caps.metadata) badges.push('<span class="cap-badge cap-metadata">Metadata</span>');
+    if (caps.cover) badges.push('<span class="cap-badge cap-cover">Cover</span>');
+    if (caps.chapter_list) badges.push('<span class="cap-badge cap-chapters">Chapters</span>');
+    if (caps.page_download) badges.push('<span class="cap-badge cap-download">Download</span>');
+    if (caps.supports_refresh) badges.push('<span class="cap-badge cap-refresh">Refresh</span>');
+    if (caps.supports_search) badges.push('<span class="cap-badge cap-search">Search</span>');
+
+    if (caps.languages && caps.languages.length > 0) {
+      badges.push('<span class="cap-badge cap-lang">' + caps.languages.join(", ") + '</span>');
+    }
+
+    var html = badges.join("");
+
+    var warnings = [];
+    if (caps.requires_auth) {
+      warnings.push('<span class="cap-warning">Requires login</span>');
+    }
+    if (caps.requires_javascript) {
+      warnings.push('<span class="cap-warning">Requires browser</span>');
+    }
+    html += warnings.join("");
+
+    addCapabilities.innerHTML = html;
   }
 
   function showAddError(msg) {
