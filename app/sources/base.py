@@ -34,3 +34,6 @@ class SourceAdapter(Protocol):
 
     async def fetch_comic(self, url: str) -> Comic:
         """Fetch and normalize comic metadata from the source."""
+
+    async def get_chapter_pages(self, chapter_id: str) -> list[str]:
+        """Return remote page image URLs for a chapter."""

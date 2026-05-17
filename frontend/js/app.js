@@ -20,6 +20,8 @@
   var addUrl = document.getElementById("add-url");
   var addSourceDetected = document.getElementById("add-source-detected");
 
+  var _pollTimers = {};
+
   document.addEventListener("DOMContentLoaded", function () {
     init();
   });
@@ -60,6 +62,15 @@
         library = data.comics || [];
         filtered = library.slice();
         renderGrid();
+        library.forEach(function (comic) {
+          if (
+            comic.status === "queued" ||
+            comic.status === "downloading" ||
+            comic.status === "metadata_fetching"
+          ) {
+            startPolling(comic.comic_id);
+          }
+        });
       })
       .catch(function (err) {
         console.error("Failed to load library:", err);
@@ -150,6 +161,11 @@
       "</span>" +
       "</div>" +
       progressHtml +
+      (comic.status !== "complete" && comic.chapter_count > comic.downloaded_count
+        ? '<button class="card-download" title="Download chapters" aria-label="Download chapters" data-download="' +
+          escapeAttr(comic.comic_id) +
+          '">&#x2B07;</button>'
+        : "") +
       '<button class="card-delete" title="Delete ' +
       escapeAttr(comic.title) +
       '" aria-label="Delete ' +
@@ -265,6 +281,9 @@
         } else {
           closeAddModal();
           loadLibrary();
+          if (data.comic && data.comic.comic_id) {
+            startPolling(data.comic.comic_id);
+          }
         }
       })
       .catch(function (err) {
@@ -288,6 +307,82 @@
       });
   }
 
+  function triggerDownload(comicId) {
+    API.post("/library/" + encodeURIComponent(comicId) + "/download", {})
+      .then(function () {
+        startPolling(comicId);
+      })
+      .catch(function (err) {
+        console.error("Download trigger failed:", err);
+      });
+  }
+
+  function startPolling(comicId) {
+    if (_pollTimers[comicId]) return;
+    _pollTimers[comicId] = setInterval(function () {
+      pollStatus(comicId);
+    }, 3000);
+  }
+
+  function stopPolling(comicId) {
+    clearInterval(_pollTimers[comicId]);
+    delete _pollTimers[comicId];
+  }
+
+  function pollStatus(comicId) {
+    API.get("/downloads/" + encodeURIComponent(comicId) + "/status")
+      .then(function (status) {
+        updateCardLive(comicId, status);
+        if (
+          status.status === "complete" ||
+          status.status === "error" ||
+          status.status === "partial"
+        ) {
+          stopPolling(comicId);
+          loadLibrary();
+        }
+      })
+      .catch(function () {
+        stopPolling(comicId);
+      });
+  }
+
+  function updateCardLive(comicId, status) {
+    var card = gridEl.querySelector(
+      '[data-comic-id="' + escapeAttr(comicId) + '"]'
+    );
+    if (!card) return;
+
+    var badge = card.querySelector(".status-badge");
+    if (badge) {
+      badge.className = "status-badge status-" + status.status;
+      badge.textContent = status.status;
+    }
+
+    var pct =
+      status.total_chapters > 0
+        ? Math.round(
+            (status.downloaded_chapters / status.total_chapters) * 100
+          )
+        : 0;
+    var bar = card.querySelector(".comic-progress-bar");
+    if (bar) bar.style.width = pct + "%";
+
+    var info = card.querySelector(".comic-chapter-info");
+    if (info) {
+      info.textContent =
+        status.downloaded_chapters +
+        " / " +
+        status.total_chapters +
+        " chapters";
+    }
+
+    var dlBtn = card.querySelector("[data-download]");
+    if (dlBtn && status.status === "complete") {
+      dlBtn.hidden = true;
+    }
+  }
+
   function showAddError(msg) {
     var errEl = document.getElementById("add-error");
     if (!errEl) return;
@@ -297,6 +392,15 @@
 
   gridEl &&
     gridEl.addEventListener("click", function (e) {
+      var dlBtn = e.target.closest("[data-download]");
+      if (dlBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var dlComicId = dlBtn.dataset.download;
+        if (dlComicId) triggerDownload(dlComicId);
+        return;
+      }
+
       var btn = e.target.closest("[data-delete]");
       if (btn) {
         e.preventDefault();

@@ -370,6 +370,33 @@ h1 {
   border-color: var(--danger);
 }
 
+.card-download {
+  position: absolute;
+  top: 6px;
+  right: 38px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.comic-card:hover .card-download {
+  opacity: 1;
+}
+
+.card-download:hover {
+  background: var(--accent-hover);
+}
+
 /* Status Badges */
 
 .status-badge {
@@ -383,7 +410,8 @@ h1 {
 }
 
 .status-pending,
-.status-metadata_fetching {
+.status-metadata_fetching,
+.status-queued {
   background: var(--warning);
   color: #1a1a1a;
 }

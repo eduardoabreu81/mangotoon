@@ -1,10 +1,13 @@
 """Library API endpoints."""
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+import asyncio
 from urllib.parse import urlparse
 
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+
 from app.models.comic import Comic, LibraryResponse
+from app.services.download_manager import download_manager
 from app.services.source_registry import source_registry
 from app.services.storage import add_comic, delete_comic, get_comic, load_library, save_comic_metadata
 from app.sources.base import InvalidSourceUrl, SourceApiError, SourceNotFound, UnsupportedSource
@@ -58,6 +61,7 @@ async def add_comic_from_source(payload: AddComicRequest) -> AddComicResponse:
     comic_data = comic.model_dump(mode="json")
     add_comic(comic_data)
     save_comic_metadata(comic.comic_id, comic_data)
+    asyncio.create_task(download_manager.enqueue_comic(comic.comic_id))
     return AddComicResponse(comic=comic, duplicate=False)
 
 
@@ -74,6 +78,24 @@ async def remove_comic(comic_id: str) -> dict[str, str]:
     if not delete_comic(comic_id):
         raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found")
     return {"message": f"Comic '{comic_id}' deleted"}
+
+
+@router.post("/{comic_id}/download")
+async def download_comic(comic_id: str) -> dict:
+    data = get_comic(comic_id)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
+    asyncio.create_task(download_manager.enqueue_comic(comic_id))
+    return {"message": "Download started.", "comic_id": comic_id}
+
+
+@router.post("/{comic_id}/chapters/{chapter_id}/download")
+async def download_chapter(comic_id: str, chapter_id: str) -> dict:
+    data = get_comic(comic_id)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
+    asyncio.create_task(download_manager.enqueue_chapter(comic_id, chapter_id))
+    return {"message": "Chapter download started.", "comic_id": comic_id, "chapter_id": chapter_id}
 
 
 def _validate_add_url(url: str) -> str:

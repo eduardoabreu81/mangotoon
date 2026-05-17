@@ -58,6 +58,19 @@ class MangaDexAdapter:
             if close_client:
                 await client.aclose()
 
+    async def get_chapter_pages(self, chapter_id: str) -> list[str]:
+        close_client = self._client is None
+        client = self._client or httpx.AsyncClient(timeout=20.0)
+
+        try:
+            payload = await self._get_json(client, f"/at-home/server/{chapter_id}", params={})
+            base_url = payload["baseUrl"]
+            chapter = payload["chapter"]
+            return [f"{base_url}/data/{chapter['hash']}/{page}" for page in chapter["data"]]
+        finally:
+            if close_client:
+                await client.aclose()
+
     async def _fetch_chapters(self, client: httpx.AsyncClient, title_id: str) -> list[dict[str, Any]]:
         chapters: list[dict[str, Any]] = []
         offset = 0
