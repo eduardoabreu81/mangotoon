@@ -20,6 +20,18 @@ from app.services.storage import (
 
 USER_AGENT = "MangoToon/0.1 (local manga reader)"
 MAX_RETRIES = 3
+ACCEPTED_IMAGE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+}
+MAGIC_BYTE_TYPES = {
+    "image/jpeg": "JPEG",
+    "image/png": "PNG",
+    "image/webp": "WEBP",
+    "image/gif": "GIF",
+}
 
 
 class DownloadStatus(str, Enum):
@@ -294,6 +306,8 @@ class DownloadManager:
             raise
 
         local_pages: list[str] = []
+        failed_pages: list[str] = []
+        failure_messages: list[str] = []
         downloaded = 0
         failed = False
         for idx, url in enumerate(page_urls, start=1):
@@ -312,12 +326,21 @@ class DownloadManager:
                 dest.write_bytes(content)
                 downloaded += 1
                 local_pages.append(str(dest.relative_to(COMICS_DIR.parent)))
-            except Exception:
+            except Exception as exc:
                 failed = True
+                failed_pages.append(str(idx))
+                failure_messages.append(f"Page {idx}: {exc}")
 
         await self._raise_if_paused_or_cancelled(job, comic_id, chapter_id)
         return self._persist_chapter_downloaded(
-            comic_id, chapter_id, len(page_urls), downloaded, local_pages, failed
+            comic_id,
+            chapter_id,
+            len(page_urls),
+            downloaded,
+            local_pages,
+            failed,
+            failed_pages=failed_pages,
+            error_message="; ".join(failure_messages),
         )
 
     def _is_cancelled(self, job: DownloadJob) -> bool:
@@ -354,6 +377,7 @@ class DownloadManager:
                     async with httpx.AsyncClient(timeout=30.0) as client:
                         response = await client.get(url, headers={"User-Agent": USER_AGENT})
                         response.raise_for_status()
+                        self._validate_image_response(response)
                         self._last_request[host] = time.monotonic()
                         return response.content
             except Exception as exc:
@@ -403,6 +427,28 @@ class DownloadManager:
                 chapter["error_message"] = message
         save_comic_metadata(comic_id, meta)
 
+    def _validate_image_response(self, response: httpx.Response) -> None:
+        content_type_header = response.headers.get("content-type", "")
+        content_type = content_type_header.split(";", 1)[0].strip().lower()
+        if content_type not in ACCEPTED_IMAGE_TYPES:
+            label = content_type or "missing content-type"
+            raise ValueError(f"Invalid image response content type: {label}.")
+
+        if not self._has_valid_magic_bytes(content_type, response.content):
+            image_type = MAGIC_BYTE_TYPES[content_type]
+            raise ValueError(f"Invalid image response body: expected {image_type} magic bytes.")
+
+    def _has_valid_magic_bytes(self, content_type: str, content: bytes) -> bool:
+        if content_type == "image/jpeg":
+            return content.startswith(b"\xff\xd8\xff")
+        if content_type == "image/png":
+            return content.startswith(b"\x89PNG")
+        if content_type == "image/webp":
+            return len(content) >= 12 and content.startswith(b"RIFF") and content[8:12] == b"WEBP"
+        if content_type == "image/gif":
+            return content.startswith((b"GIF87a", b"GIF89a"))
+        return False
+
     def _persist_chapter_downloaded(
         self,
         comic_id: str,
@@ -411,6 +457,8 @@ class DownloadManager:
         downloaded_pages: int,
         local_pages: list[str],
         failed: bool,
+        failed_pages: list[str] | None = None,
+        error_message: str = "",
     ) -> str:
         meta = load_comic_metadata(comic_id)
         if not meta:
@@ -426,6 +474,8 @@ class DownloadManager:
                 chapter["pages"] = total_pages
                 chapter["downloaded_pages"] = downloaded_pages
                 chapter["local_pages"] = local_pages
+                chapter["failed_pages"] = failed_pages or []
+                chapter["error_message"] = error_message if failed else ""
         save_comic_metadata(comic_id, meta)
         self._update_library_counts(comic_id, meta)
         return status
