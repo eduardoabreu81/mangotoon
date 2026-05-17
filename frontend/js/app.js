@@ -883,8 +883,8 @@
     }
     if (!comic) return;
 
-    API.post("/library/" + encodeURIComponent(comicId) + "/update", {
-      status: "complete",
+    API.post("/library/" + encodeURIComponent(comicId) + "/status", {
+      status: "completed",
     })
       .then(function () {
         loadLibrary();

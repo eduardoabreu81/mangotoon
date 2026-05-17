@@ -32,16 +32,106 @@ No cloud sync. No accounts. No tracking. No React. No database.
 
 ## 🆕 What's New
 
-### Phase 4.5 — Stabilization
+### Phase 13 — Universal Import Preview Flow
 
-- **Chapter metadata now persists ordered local page paths** — the Reader will never have to guess filenames
-- **Partial download handling improved** — failed pages mark chapters as `error` or `partial`, not `downloaded`
-- **Library metadata cleaned** — `chapter_count` and `downloaded_count` are derived from chapters, not duplicated
-- **README aligned with actual scope** — no more "Phase 0 only" confusion
+- **3-step import wizard** — URL → Preview → Confirm before adding to library
+- **ImportPreview model** — shows title, cover, chapter count, source, languages, duplicate warning
+- **POST /api/library/import/preview** — fetch metadata without saving
+- **POST /api/library/import/confirm** — save with optional title override and auto-download toggle
+- **Legacy /api/library/add preserved** — backward compatible
+
+### Phase 12 — Source Capability Matrix
+
+- **Adapter capabilities exposed via API** — each source declares what it supports
+- **Frontend capability badges** — shown in Add Manga modal
+- **SourceCapabilities model** — metadata, cover, chapters, download, languages, refresh, search, auth, javascript
+
+### Phase 11 — Adapter-First Core Refactor
+
+- **Removed MangaDex hardcodes from core** — source registry pattern
+- **FakeSourceAdapter** for testing without network
+- **Reader uses local_pages as source of truth**
+
+### Phase 10 — Download Controls
+
+- **Pause, resume, cancel downloads** — per-comic and per-chapter
+- **Retry failed chapters** — granular retry endpoint
+- **Download status polling** — real-time UI updates
+
+### Phase 9 — Library UX Upgrade
+
+- **Sidebar filters** — by status, source
+- **Context menu** — quick actions on manga cards
+- **Sort options** — title, updated, progress, status
+
+### Phase 8 — Settings Page
+
+- **Reader preferences** — fit mode, zoom, auto-advance
+- **Download settings** — concurrency, rate limit
+- **Appearance** — theme toggle
+
+### Phase 7 — History Page
+
+- **Last read tracking** — automatic on chapter close
+- **Resume functionality** — continue from last page
+
+### Phase 6 — Reader Polish
+
+- **Fullscreen mode**
+- **Fit modes** — width, height, original
+- **Zoom controls**
+- **Auto-advance**
+
+### Phase 5 — Reader MVP
+
+- **Offline chapter viewer** — serves local images
+- **Keyboard navigation** — arrow keys, space
+- **Progress save** — page and chapter tracking
 
 ---
 
 ## 📖 Changelog
+
+### Phase 13 — Universal Import Preview Flow
+- ImportPreview model with source, title, cover, chapter_count, languages, duplicate, warnings
+- POST /api/library/import/preview — returns metadata without saving
+- POST /api/library/import/confirm — saves with optional title override and auto-download
+- Frontend 3-step wizard: URL → Preview → Confirm
+- Typed request models (ImportPreviewRequest, ImportConfirmRequest)
+- ImportConfirmResponse model
+- Legacy /api/library/add preserved as wrapper
+
+### Phase 12 — Source Capability Matrix
+- SourceCapabilities model (metadata, cover, chapters, download, languages, refresh, search, auth, javascript)
+- Each adapter declares capabilities
+- /api/sources returns real capabilities and domains
+- Frontend displays capability badges in Add Manga modal
+
+### Phase 11 — Adapter-First Core Refactor
+- Removed MangaDex hardcodes from core services
+- Source registry pattern with get_adapter_for_comic()
+- FakeSourceAdapter for tests
+- Reader uses local_pages as source of truth
+
+### Phase 10 — Download Controls
+- Pause, resume, cancel downloads (per-comic and per-chapter)
+- Retry failed chapters
+- Download status polling
+
+### Phase 9 — Library UX Upgrade
+- Sidebar filters, context menu, sort options
+
+### Phase 8 — Settings Page
+- Reader preferences, download settings, appearance
+
+### Phase 7 — History Page
+- Last read tracking, resume functionality
+
+### Phase 6 — Reader Polish
+- Fullscreen, fit modes, zoom, auto-advance
+
+### Phase 5 — Reader MVP
+- Offline chapter viewer, keyboard navigation, progress save
 
 ### Phase 4.5 — Stabilization
 - Added `local_pages: list[str]` to Chapter model
@@ -94,28 +184,30 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 2 | ✅ | Library & Settings API |
 | 3 | ✅ | Source adapter — MangaDex as first supported source |
 | 4 | ✅ | Download manager — async queue, retry, progress |
-| 4.5 | ✅ | **Stabilization — local page paths, partial download handling** |
-| 5 | 🔄 | **Reader MVP — offline chapter viewer, keyboard nav, progress save** |
-| 6 | 📋 | Reader polish — fullscreen, fit modes, zoom, auto-advance |
-| 7 | 📋 | History page — last read tracking, resume |
-| 8 | 📋 | Settings page — concurrency, rate limit, theme |
-| 9 | 📋 | Library UX upgrade — sidebar, filters, context menu |
-| 10 | 📋 | Download controls — pause, resume, cancel, retry |
-| 11 | 📋 | **Source adapter quality layer** — MangaDex hardening, shared contract, capability matrix |
-| 12 | 📋 | **Universal import preview flow** — source-agnostic metadata preview before download |
-| 13 | 📋 | Packaging — run.bat, Dockerfile |
-| 14 | 📋 | Backup and export |
-| 15 | 📋 | Second source adapter |
-| 16 | 📋 | Multi-source normalization |
+| 4.5 | ✅ | Stabilization — local page paths, partial download handling |
+| 5 | ✅ | Reader MVP — offline chapter viewer, keyboard nav, progress save |
+| 6 | ✅ | Reader polish — fullscreen, fit modes, zoom, auto-advance |
+| 7 | ✅ | History page — last read tracking, resume |
+| 8 | ✅ | Settings page — concurrency, rate limit, theme |
+| 9 | ✅ | Library UX upgrade — sidebar, filters, context menu |
+| 10 | ✅ | Download controls — pause, resume, cancel, retry |
+| 11 | ✅ | Adapter-first core refactor — remove MangaDex hardcodes |
+| 12 | ✅ | Source capability matrix — adapter capabilities exposed via API |
+| 13 | ✅ | Universal import preview flow — source-agnostic metadata preview before download |
+| 14 | 🔄 | **Packaging** — run.bat, Dockerfile |
+| 15 | 📋 | Backup and export |
+| 16 | 📋 | Second source adapter |
+| 17 | 📋 | Multi-source normalization |
 
 ---
 
 ## 🎯 Features
 
 ### 📚 Library
-- Add manga by URL (MangaDex as first supported source)
+- Add manga by URL with 3-step preview wizard (MangaDex as first supported source)
+- Preview metadata before import — title, cover, chapter count, duplicate warning
 - Automatic metadata fetch and chapter download via source adapter
-- Search and sort library
+- Search, sort, and filter library by status and source
 - Delete manga (removes local files)
 - Download progress polling with status badges
 
@@ -124,13 +216,24 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - Per-domain rate limiting
 - Exponential backoff retry
 - Cover and chapter image download
-- Resume/retry incomplete downloads
+- Pause, resume, cancel downloads
+- Retry failed chapters
+
+### 📖 Reader
+- Offline chapter viewer — serves local images
+- Keyboard navigation — arrow keys, space
+- Progress save — page and chapter tracking
+- Fullscreen mode
+- Fit modes — width, height, original
+- Zoom controls
+- Auto-advance
 
 ### 🎨 UI
 - Dark theme with purple accent (`#9b59b6`)
 - Responsive grid layout
-- Modal-based Add Manga flow
+- Modal-based Add Manga flow with preview
 - Real-time download status indicators
+- Capability badges per source
 - English UI throughout
 
 ---
@@ -190,25 +293,35 @@ mangotoon/
 ├── app/
 │   ├── main.py              # FastAPI app factory
 │   ├── models/
-│   │   └── comic.py         # Pydantic models
+│   │   └── comic.py         # Pydantic models (Comic, Chapter, ImportPreview, SourceCapabilities)
 │   ├── routers/
-│   │   ├── library.py       # Library CRUD + add/download
+│   │   ├── library.py       # Library CRUD + add/import preview/confirm
 │   │   ├── downloads.py     # Download status endpoints
-│   │   └── settings.py      # Settings CRUD
+│   │   ├── reader.py        # Chapter serving + progress save
+│   │   ├── history.py       # Reading history
+│   │   ├── settings.py      # Settings CRUD
+│   │   └── sources.py       # Source registry + detection + capabilities
 │   ├── services/
 │   │   ├── storage.py       # JSON atomic writes
 │   │   ├── download_manager.py  # Async queue + retry
 │   │   └── source_registry.py   # Adapter registry
 │   └── sources/
 │       ├── base.py          # SourceAdapter protocol
-│       └── mangadex.py      # MangaDex adapter
+│       ├── mangadex.py      # MangaDex adapter
+│       └── fake.py          # FakeSourceAdapter for tests
 ├── frontend/
 │   ├── index.html           # Library page
+│   ├── reader.html          # Reader page
+│   ├── history.html         # History page
+│   ├── settings.html        # Settings page
 │   ├── css/style.css        # Dark theme
 │   └── js/
 │       ├── api.js           # API client
-│       └── app.js           # Library UI logic
-├── tests/                   # pytest suite
+│       ├── app.js           # Library UI logic
+│       ├── reader.js        # Reader UI logic
+│       ├── history.js       # History UI logic
+│       └── settings.js      # Settings UI logic
+├── tests/                   # pytest suite (77 tests)
 ├── scripts/
 │   └── init_data.py         # Local data bootstrap
 ├── data/                    # Local storage (gitignored)

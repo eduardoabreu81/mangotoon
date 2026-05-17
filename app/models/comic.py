@@ -13,6 +13,7 @@ class ChapterStatus(str, Enum):
     downloading = "downloading"
     downloaded = "downloaded"
     error = "error"
+    partial = "partial"
 
 
 class Chapter(BaseModel):
