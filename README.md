@@ -40,10 +40,18 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - **POST /api/library/import/confirm** — save with optional title override and auto-download toggle
 - **Legacy /api/library/add preserved** — backward compatible
 
+### Phase 17 — Download Integrity
+
+- **Content-type validation** — rejects HTML, JSON, or other non-image responses
+- **Magic bytes validation** — verifies JPEG, PNG, WEBP, GIF signatures
+- **Failed pages tracking** — per-chapter list of failed page indices with error messages
+- **Partial download accuracy** — succeeded pages saved, failed pages tracked, chapter status becomes `partial` or `error`
+- **No retry on validation errors** — avoids wasting bandwidth on permanently invalid responses
+
 ### Phase 16 — Download Queue Reliability
 
-- **Pause/resume/cancel fixes** — event-based pause with resume/cancel events per job
-- **Cancelled status** — chapters properly marked as `cancelled` instead of `error`
+- **Pause/resume/cancel event-based system** per job
+- **Cancelled status** for chapters (not error)
 - **Retry improvements** — works for `error`, `partial`, and `cancelled` chapters
 - **Race condition fixes** — `_remove_queued_items` uses new queue to avoid `task_done` mismatch
 
@@ -120,9 +128,16 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - ImportConfirmResponse model
 - Legacy /api/library/add preserved as wrapper
 
+### Phase 17 — Download Integrity
+- Content-type validation (reject HTML/JSON)
+- Magic bytes validation (JPEG, PNG, WEBP, GIF)
+- Failed pages tracking per chapter
+- Partial download accuracy
+- No retry on validation errors
+
 ### Phase 16 — Download Queue Reliability
 - Pause/resume/cancel event-based system per job
-- Cancelled status for chapters (not error)
+- Cancelled status for chapters
 - Retry works for error, partial, cancelled
 - Race condition fixes in queue management
 
@@ -233,7 +248,7 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 14 | ✅ | Packaging — run.bat, Dockerfile, docker-compose |
 | 15 | ✅ | Refresh metadata — re-fetch without losing downloads |
 | 16 | ✅ | Download queue reliability — pause/resume/cancel fixes |
-| 17 | 📋 | **Download integrity** — content-type validation, magic bytes |
+| 17 | ✅ | **Download integrity** — content-type validation, magic bytes |
 | 18 | 📋 | Backup and export |
 
 ---
