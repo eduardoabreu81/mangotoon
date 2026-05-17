@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangoToon — Comic Detail</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <main class="page-shell">
+
+    <!-- Back navigation -->
+    <header class="detail-topbar">
+      <a href="/" class="reader-back-btn">← Library</a>
+      <h1 id="detail-top-title" class="detail-top-title">Loading...</h1>
+      <span></span>
+    </header>
+
+    <!-- Loading -->
+    <section id="detail-loading" class="library-loading" aria-label="Loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <span>Loading comic...</span>
+    </section>
+
+    <!-- Error -->
+    <section id="detail-error" class="reader-error" hidden>
+      <p id="detail-error-msg">Comic not found.</p>
+      <a href="/" class="btn-primary">Back to Library</a>
+    </section>
+
+    <!-- Detail content -->
+    <div id="detail-content" class="detail-content" hidden>
+
+      <!-- Cover + Metadata -->
+      <section class="detail-header">
+        <div class="detail-cover-wrap">
+          <img id="detail-cover" class="detail-cover" src="" alt="">
+          <div id="detail-cover-placeholder" class="detail-cover-placeholder" hidden></div>
+        </div>
+        <div class="detail-meta">
+          <div class="detail-meta-top">
+            <h2 id="detail-title-display" class="detail-title-display"></h2>
+            <div id="detail-source" class="preview-source"></div>
+          </div>
+
+          <span id="detail-status" class="status-badge"></span>
+
+          <p id="detail-description" class="detail-description-text" hidden></p>
+
+          <div class="detail-stats">
+            <span id="detail-chapter-count">0 chapters</span>
+            <span class="detail-stats-sep">·</span>
+            <span id="detail-downloaded-count">0 downloaded</span>
+          </div>
+
+          <div id="detail-progress" class="detail-progress" hidden>
+            <div class="detail-progress-bar">
+              <div id="detail-progress-fill" class="detail-progress-fill"></div>
+            </div>
+            <span id="detail-progress-text" class="detail-progress-text"></span>
+          </div>
+
+          <div id="detail-reading-progress" class="detail-reading-progress" hidden>
+            <span id="detail-reading-text"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section class="detail-actions">
+        <button id="btn-detail-read" class="btn-primary">Read</button>
+        <button id="btn-detail-download-missing" class="btn-secondary">Download Missing</button>
+        <button id="btn-detail-retry-failed" class="btn-secondary" hidden>Retry Failed</button>
+        <button id="btn-detail-refresh" class="btn-secondary">Refresh</button>
+        <button id="btn-detail-delete" class="btn-secondary detail-delete-btn">Delete</button>
+      </section>
+
+      <!-- Chapter List -->
+      <section class="detail-chapters">
+        <div class="detail-chapters-header">
+          <h3>Chapters</h3>
+          <span id="detail-chapters-filter-count" class="sidebar-count"></span>
+        </div>
+        <div id="detail-chapter-list" class="detail-chapter-list"></div>
+        <div id="detail-no-chapters" class="detail-no-chapters" hidden>No chapters available.</div>
+      </section>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" hidden>
+      <span id="toast-msg"></span>
+    </div>
+
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/comic.js"></script>
+</body>
+</html>

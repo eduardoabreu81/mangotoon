@@ -1536,3 +1536,442 @@ body.sidebar-open {
     transform: translateY(100%);
   }
 }
+
+/* === Comic Detail Page === */
+
+.detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.detail-top-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detail-content {
+  animation: wizardFadeIn 0.2s ease;
+}
+
+.detail-content[hidden] {
+  display: none;
+}
+
+.detail-header {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.detail-cover-wrap {
+  flex-shrink: 0;
+}
+
+.detail-cover {
+  width: 180px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.detail-cover[hidden] {
+  display: none;
+}
+
+.detail-cover-placeholder {
+  width: 180px;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.detail-cover-placeholder[hidden] {
+  display: none;
+}
+
+.detail-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-meta-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-title-display {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.detail-description-text {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.detail-description-text[hidden] {
+  display: none;
+}
+
+.detail-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.detail-stats-sep {
+  color: var(--border-light);
+}
+
+.detail-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-progress[hidden] {
+  display: none;
+}
+
+.detail-progress-bar {
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.detail-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width var(--transition-normal);
+  min-width: 0;
+}
+
+.detail-progress-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.detail-reading-progress {
+  padding: 8px 12px;
+  background: rgba(155, 89, 182, 0.1);
+  border: 1px solid rgba(155, 89, 182, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.detail-reading-progress[hidden] {
+  display: none;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.detail-actions .btn-primary,
+.detail-actions .btn-secondary {
+  padding: 10px 18px;
+  font-size: 0.875rem;
+}
+
+.detail-delete-btn {
+  color: var(--danger) !important;
+  border-color: rgba(231, 76, 60, 0.3) !important;
+}
+
+.detail-delete-btn:hover {
+  background: rgba(231, 76, 60, 0.1) !important;
+  border-color: var(--danger) !important;
+}
+
+.detail-chapters {
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.detail-chapters-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.detail-chapters-header h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.detail-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-no-chapters {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.detail-no-chapters[hidden] {
+  display: none;
+}
+
+.chapter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid var(--border);
+}
+
+.chapter-row:last-child {
+  border-bottom: none;
+}
+
+.chapter-row:hover {
+  background: var(--bg-hover);
+}
+
+.chapter-status {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.chapter-status-not_downloaded {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.chapter-status-queued {
+  background: rgba(243, 156, 18, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
+.chapter-status-downloading {
+  background: rgba(52, 152, 219, 0.15);
+  color: var(--info);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.chapter-status-downloaded {
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.chapter-status-error {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.chapter-status-partial {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(155, 89, 182, 0.3);
+}
+
+.chapter-status-cancelled {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  opacity: 0.6;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.chapter-num {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 48px;
+  white-space: nowrap;
+}
+
+.chapter-title-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chapter-lang {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.chapter-completed-badge {
+  font-size: 0.65rem;
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--success);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.chapter-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chapter-dl-btn,
+.chapter-retry-btn,
+.chapter-read-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.chapter-dl-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.chapter-retry-btn {
+  color: var(--warning);
+  border-color: rgba(243, 156, 18, 0.3);
+}
+
+.chapter-retry-btn:hover {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #1a1a1a;
+}
+
+.chapter-read-btn:hover {
+  background: var(--success);
+  border-color: var(--success);
+  color: #1a1a1a;
+}
+
+.chapter-dl-progress {
+  font-size: 0.7rem;
+  color: var(--info);
+  white-space: nowrap;
+}
+
+.chapter-dl-partial {
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .detail-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .detail-cover,
+  .detail-cover-placeholder {
+    width: 140px;
+  }
+
+  .detail-meta {
+    align-items: center;
+  }
+
+  .detail-stats {
+    justify-content: center;
+  }
+
+  .detail-progress {
+    width: 100%;
+  }
+
+  .detail-actions {
+    justify-content: center;
+  }
+
+  .chapter-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chapter-title-text {
+    flex: 1 1 100%;
+    order: 10;
+  }
+}

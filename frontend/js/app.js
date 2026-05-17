@@ -863,7 +863,7 @@
 
     switch (action) {
       case "read":
-        window.location.href = "/reader?comic=" + encodeURIComponent(contextComicId);
+        window.location.href = "/comic?comic_id=" + encodeURIComponent(contextComicId);
         break;
       case "download":
         triggerDownload(contextComicId);
@@ -989,7 +989,7 @@
       if (card) {
         var comicId = card.dataset.comicId;
         if (comicId) {
-          window.location.href = "/reader?comic=" + encodeURIComponent(comicId);
+          window.location.href = "/comic?comic_id=" + encodeURIComponent(comicId);
         }
       }
     });

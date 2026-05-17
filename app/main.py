@@ -52,6 +52,10 @@ def create_app() -> FastAPI:
     async def reader_page() -> FileResponse:
         return FileResponse(FRONTEND_DIR / "reader.html")
 
+    @app.get("/comic")
+    async def comic_page() -> FileResponse:
+        return FileResponse(FRONTEND_DIR / "comic.html")
+
     return app
 
 
