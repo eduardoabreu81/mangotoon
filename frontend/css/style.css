@@ -1222,6 +1222,246 @@ body.sidebar-open {
   margin: 4px 0;
 }
 
+/* === Add Manga Wizard === */
+
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 24px;
+  padding: 0 8px;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.wizard-step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  transition: all var(--transition-normal);
+}
+
+.wizard-step.active .wizard-step-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.wizard-step.completed .wizard-step-num {
+  background: var(--success);
+  border-color: var(--success);
+  color: #1a1a1a;
+}
+
+.wizard-step-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color var(--transition-normal);
+}
+
+.wizard-step.active .wizard-step-label {
+  color: var(--accent);
+}
+
+.wizard-step.completed .wizard-step-label {
+  color: var(--success);
+}
+
+.wizard-step-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--border);
+  margin: 0 4px 16px 4px;
+  transition: background var(--transition-normal);
+}
+
+.wizard-step.completed + .wizard-step-connector {
+  background: var(--success);
+}
+
+.wizard-panel {
+  animation: wizardFadeIn 0.2s ease;
+}
+
+.wizard-panel[hidden] {
+  display: none;
+}
+
+@keyframes wizardFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Preview Container */
+
+.preview-container {
+  margin-bottom: 16px;
+}
+
+.preview-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.preview-cover {
+  width: 100px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  background: var(--bg-card);
+}
+
+.preview-cover[hidden] {
+  display: none;
+}
+
+.preview-placeholder {
+  width: 100px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.preview-placeholder[hidden] {
+  display: none;
+}
+
+.preview-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preview-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.preview-source {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.preview-chapters {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.preview-languages {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.preview-languages[hidden] {
+  display: none;
+}
+
+.preview-description {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.preview-description[hidden] {
+  display: none;
+}
+
+.preview-duplicate {
+  background: rgba(243, 156, 18, 0.12);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--warning);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
+.preview-duplicate[hidden] {
+  display: none;
+}
+
+.preview-warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.preview-warnings[hidden] {
+  display: none;
+}
+
+.preview-warning-item {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(243, 156, 18, 0.12);
+  color: var(--warning);
+  white-space: nowrap;
+}
+
+/* Wizard Toggle */
+
+.wizard-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.wizard-toggle input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.wizard-toggle-label {
+  font-size: 0.85rem;
+}
+
+/* End Wizard */
+
 @media (max-width: 640px) {
   .page-header,
   .toolbar {

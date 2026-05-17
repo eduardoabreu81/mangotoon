@@ -28,12 +28,34 @@
 
   var _sourcesCache = [];
 
+  var _wizardUrl = "";
+  var _wizardPreview = null;
+
   var addModal = document.getElementById("add-modal");
-  var addForm = document.getElementById("add-form");
   var addCancel = document.getElementById("add-cancel");
   var addUrl = document.getElementById("add-url");
   var addSourceDetected = document.getElementById("add-source-detected");
   var addCapabilities = document.getElementById("add-source-capabilities");
+  var addStep1 = document.getElementById("add-step1");
+  var addStep2 = document.getElementById("add-step2");
+  var addStep3 = document.getElementById("add-step3");
+  var btnPreview = document.getElementById("btn-preview");
+  var btnBackToUrl = document.getElementById("btn-back-to-url");
+  var btnConfirmStep = document.getElementById("btn-confirm-step");
+  var btnBackToPreview = document.getElementById("btn-back-to-preview");
+  var btnConfirm = document.getElementById("btn-confirm");
+  var previewCover = document.getElementById("preview-cover");
+  var previewPlaceholder = document.getElementById("preview-placeholder");
+  var previewTitle = document.getElementById("preview-title");
+  var previewSource = document.getElementById("preview-source");
+  var previewChapters = document.getElementById("preview-chapters");
+  var previewLanguages = document.getElementById("preview-languages");
+  var previewDescription = document.getElementById("preview-description");
+  var previewDuplicate = document.getElementById("preview-duplicate");
+  var previewWarnings = document.getElementById("preview-warnings");
+  var addAutoDownload = document.getElementById("add-auto-download");
+  var addErrorStep2 = document.getElementById("add-error-step2");
+  var addErrorStep3 = document.getElementById("add-error-step3");
 
   var contextMenu = document.getElementById("context-menu");
   var contextComicId = null;
@@ -78,7 +100,11 @@
     });
 
     addCancel && addCancel.addEventListener("click", closeAddModal);
-    addForm && addForm.addEventListener("submit", onAddSubmit);
+    btnPreview && btnPreview.addEventListener("click", onPreviewClick);
+    btnBackToUrl && btnBackToUrl.addEventListener("click", function () { showWizardStep(1); });
+    btnConfirmStep && btnConfirmStep.addEventListener("click", onContinueToConfirm);
+    btnBackToPreview && btnBackToPreview.addEventListener("click", function () { showWizardStep(2); });
+    btnConfirm && btnConfirm.addEventListener("click", onConfirmClick);
     addUrl && addUrl.addEventListener("input", detectSource);
 
     if (contextMenu) {
@@ -408,10 +434,8 @@
     );
   }
 
-  function onAddSubmit(e) {
-    e.preventDefault();
+  function onPreviewClick() {
     var url = (addUrl.value || "").trim();
-
     showAddError("");
 
     if (!url) {
@@ -419,63 +443,167 @@
       return;
     }
 
-    var submitBtn = addForm.querySelector('[type="submit"]');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Adding...";
-    }
+    btnPreview.disabled = true;
+    btnPreview.textContent = "Loading...";
 
-    API.post("/library/add", { url: url })
+    API.previewImport(url)
       .then(function (data) {
-        if (data.duplicate) {
-          showAddError("Already in your library.");
-          setTimeout(function () {
-            closeAddModal();
-            loadLibrary();
-          }, 1500);
-        } else {
-          closeAddModal();
-          loadLibrary();
-          if (data.comic && data.comic.comic_id) {
-            startPolling(data.comic.comic_id);
-          }
-        }
+        _wizardUrl = url;
+        _wizardPreview = data;
+        showWizardStep(2);
+        renderPreview(data);
       })
       .catch(function (err) {
-        var msg = "Failed to add manga.";
+        var msg = "Failed to preview manga.";
         if (err.detail) {
-          if (typeof err.detail === "string") {
-            msg = err.detail;
-          } else if (err.detail.error && err.detail.error.message) {
-            msg = err.detail.error.message;
-          }
+          if (typeof err.detail === "string") msg = err.detail;
+          else if (err.detail.error && err.detail.error.message) msg = err.detail.error.message;
         } else if (err.message) {
           msg = err.message;
         }
         showAddError(msg);
       })
       .finally(function () {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Add";
-        }
+        btnPreview.disabled = false;
+        btnPreview.textContent = "Preview";
       });
+  }
+
+  function onContinueToConfirm() {
+    showWizardStep(3);
+  }
+
+  function onConfirmClick() {
+    var titleOverride = (document.getElementById("add-title-override").value || "").trim();
+    var autoDownload = addAutoDownload ? addAutoDownload.checked : true;
+    var payload = { url: _wizardUrl, auto_download: autoDownload };
+    if (titleOverride) payload.title = titleOverride;
+
+    hideAddErrors();
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = "Importing...";
+
+    API.confirmImport(payload)
+      .then(function (data) {
+        closeAddModal();
+        loadLibrary();
+        if (data.comic_id && !data.duplicate) {
+          startPolling(data.comic_id);
+        }
+      })
+      .catch(function (err) {
+        var msg = "Failed to add manga.";
+        if (err.detail) {
+          if (typeof err.detail === "string") msg = err.detail;
+          else if (err.detail.error && err.detail.error.message) msg = err.detail.error.message;
+        } else if (err.message) {
+          msg = err.message;
+        }
+        showErrorStep3(msg);
+      })
+      .finally(function () {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = "Confirm";
+      });
+  }
+
+  function showWizardStep(step) {
+    var panels = [addStep1, addStep2, addStep3];
+    panels.forEach(function (panel, i) {
+      if (panel) panel.hidden = (i + 1 !== step);
+    });
+    updateStepIndicators(step);
+    hideAddErrors();
+
+    if (step === 1) {
+      addUrl && addUrl.focus();
+    }
+  }
+
+  function updateStepIndicators(step) {
+    var indicators = document.querySelectorAll(".wizard-step");
+    indicators.forEach(function (el) {
+      var s = parseInt(el.dataset.wizardStep, 10);
+      el.classList.remove("active", "completed");
+      if (s === step) el.classList.add("active");
+      else if (s < step) el.classList.add("completed");
+    });
+  }
+
+  function renderPreview(data) {
+    if (data.cover_url) {
+      if (previewCover) {
+        previewCover.src = data.cover_url;
+        previewCover.hidden = false;
+      }
+      if (previewPlaceholder) previewPlaceholder.hidden = true;
+    } else {
+      if (previewCover) previewCover.hidden = true;
+      if (previewPlaceholder) {
+        previewPlaceholder.textContent = (data.title || "?").charAt(0).toUpperCase();
+        previewPlaceholder.hidden = false;
+      }
+    }
+
+    if (previewTitle) previewTitle.textContent = data.title || "Unknown Title";
+    if (previewSource) previewSource.textContent = data.source || "";
+
+    var chapterText = data.chapter_count + " chapter" + (data.chapter_count !== 1 ? "s" : "");
+    if (previewChapters) previewChapters.textContent = chapterText;
+
+    if (previewLanguages && data.languages && data.languages.length > 0) {
+      previewLanguages.textContent = data.languages.join(", ");
+      previewLanguages.hidden = false;
+    } else if (previewLanguages) {
+      previewLanguages.hidden = true;
+    }
+
+    if (previewDescription) {
+      previewDescription.textContent = data.description || "";
+      previewDescription.hidden = !data.description;
+    }
+
+    if (previewDuplicate) previewDuplicate.hidden = !data.duplicate;
+
+    if (previewWarnings) {
+      if (data.warnings && data.warnings.length > 0) {
+        previewWarnings.innerHTML = data.warnings
+          .map(function (w) { return '<span class="preview-warning-item">' + escapeHtml(w) + '</span>'; })
+          .join("");
+        previewWarnings.hidden = false;
+      } else {
+        previewWarnings.hidden = true;
+      }
+    }
   }
 
   function openAddModal() {
     if (addModal) {
       addModal.hidden = false;
-      addUrl && addUrl.focus();
+      showWizardStep(1);
+      _wizardUrl = "";
+      _wizardPreview = null;
+      addUrl.value = "";
+      var titleOverride = document.getElementById("add-title-override");
+      if (titleOverride) titleOverride.value = "";
+      if (addAutoDownload) addAutoDownload.checked = true;
+      addSourceDetected && (addSourceDetected.textContent = "");
+      addCapabilities && (addCapabilities.innerHTML = "");
     }
   }
 
   function closeAddModal() {
     if (addModal) {
       addModal.hidden = true;
-      addForm && addForm.reset();
+      _wizardUrl = "";
+      _wizardPreview = null;
+      addUrl.value = "";
+      var titleOverride = document.getElementById("add-title-override");
+      if (titleOverride) titleOverride.value = "";
+      if (addAutoDownload) addAutoDownload.checked = true;
       addSourceDetected && (addSourceDetected.textContent = "");
       addCapabilities && (addCapabilities.innerHTML = "");
-      showAddError("");
+      hideAddErrors();
     }
   }
 
@@ -547,6 +675,19 @@
     if (!errEl) return;
     errEl.textContent = msg;
     errEl.hidden = !msg;
+  }
+
+  function showErrorStep3(msg) {
+    if (addErrorStep3) {
+      addErrorStep3.textContent = msg;
+      addErrorStep3.hidden = !msg;
+    }
+  }
+
+  function hideAddErrors() {
+    showAddError("");
+    if (addErrorStep2) { addErrorStep2.textContent = ""; addErrorStep2.hidden = true; }
+    if (addErrorStep3) { addErrorStep3.textContent = ""; addErrorStep3.hidden = true; }
   }
 
   function triggerDownload(comicId) {

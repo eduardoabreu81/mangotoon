@@ -63,5 +63,13 @@ const API = (function () {
     return post("/sources/detect", { url: url });
   }
 
-  return { get, post, del, getSources, detectSource, ApiError, BASE };
+  function previewImport(url) {
+    return post("/library/import/preview", { url: url });
+  }
+
+  function confirmImport(data) {
+    return post("/library/import/confirm", data);
+  }
+
+  return { get, post, del, getSources, detectSource, previewImport, confirmImport, ApiError, BASE };
 })();

@@ -82,23 +82,81 @@
 
     <div id="library-grid" class="library-grid" aria-label="Comic library"></div>
 
-    <!-- Add Manga Modal -->
+    <!-- Add Manga Modal (3-step wizard) -->
     <div id="add-modal" class="modal" hidden>
       <div class="modal-backdrop"></div>
-      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+      <div class="modal-content wizard" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
         <h2 id="add-modal-title">Add Manga</h2>
-        <form id="add-form">
+
+        <!-- Step Indicators -->
+        <div class="wizard-steps" aria-label="Import steps">
+          <div class="wizard-step active" data-wizard-step="1">
+            <span class="wizard-step-num">1</span>
+            <span class="wizard-step-label">URL</span>
+          </div>
+          <div class="wizard-step-connector"></div>
+          <div class="wizard-step" data-wizard-step="2">
+            <span class="wizard-step-num">2</span>
+            <span class="wizard-step-label">Preview</span>
+          </div>
+          <div class="wizard-step-connector"></div>
+          <div class="wizard-step" data-wizard-step="3">
+            <span class="wizard-step-num">3</span>
+            <span class="wizard-step-label">Confirm</span>
+          </div>
+        </div>
+
+        <!-- Step 1: URL Input -->
+        <form id="add-step1" class="wizard-panel">
           <label for="add-url">Manga URL</label>
           <input id="add-url" type="url" placeholder="https://..." required>
           <div id="add-source-detected" class="source-detected"></div>
           <div id="add-source-capabilities" class="source-capabilities"></div>
-          <label for="add-title-override">Title Override (optional)</label>
-          <input id="add-title-override" type="text" placeholder="Custom title">
-          <p class="add-hint">Adding a manga will fetch its metadata and start downloading chapters automatically.</p>
           <p id="add-error" class="add-error-msg" hidden></p>
           <div class="modal-actions">
             <button type="button" id="add-cancel" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">Add</button>
+            <button type="button" id="btn-preview" class="btn-primary">Preview</button>
+          </div>
+        </form>
+
+        <!-- Step 2: Preview -->
+        <div id="add-step2" class="wizard-panel" hidden>
+          <div id="preview-container" class="preview-container">
+            <div class="preview-header">
+              <img id="preview-cover" class="preview-cover" src="" alt="" hidden>
+              <div class="preview-placeholder" id="preview-placeholder" hidden></div>
+              <div class="preview-meta">
+                <h3 id="preview-title" class="preview-title"></h3>
+                <div id="preview-source" class="preview-source"></div>
+                <div id="preview-chapters" class="preview-chapters"></div>
+                <div id="preview-languages" class="preview-languages"></div>
+              </div>
+            </div>
+            <div id="preview-description" class="preview-description"></div>
+            <div id="preview-duplicate" class="preview-duplicate" hidden>
+              Already in your library.
+            </div>
+            <div id="preview-warnings" class="preview-warnings" hidden></div>
+          </div>
+          <p id="add-error-step2" class="add-error-msg" hidden></p>
+          <div class="modal-actions">
+            <button type="button" id="btn-back-to-url" class="btn-secondary">Back</button>
+            <button type="button" id="btn-confirm-step" class="btn-primary">Continue</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Confirm -->
+        <form id="add-step3" class="wizard-panel" hidden>
+          <label for="add-title-override">Title Override (optional)</label>
+          <input id="add-title-override" type="text" placeholder="Custom title">
+          <label class="wizard-toggle">
+            <input type="checkbox" id="add-auto-download" checked>
+            <span class="wizard-toggle-label">Auto-download chapters after import</span>
+          </label>
+          <p id="add-error-step3" class="add-error-msg" hidden></p>
+          <div class="modal-actions">
+            <button type="button" id="btn-back-to-preview" class="btn-secondary">Back</button>
+            <button type="button" id="btn-confirm" class="btn-primary">Confirm</button>
           </div>
         </form>
       </div>
