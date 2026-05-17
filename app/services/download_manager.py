@@ -444,7 +444,7 @@ class DownloadManager:
             raise ValueError(f"Invalid image response body: expected {image_type} magic bytes.")
 
     def _has_valid_magic_bytes(self, content_type: str, content: bytes) -> bool:
-        if content_type == "image/jpeg":
+        if content_type in ("image/jpeg", "image/jpg"):
             return content.startswith(b"\xff\xd8\xff")
         if content_type == "image/png":
             return content.startswith(b"\x89PNG")

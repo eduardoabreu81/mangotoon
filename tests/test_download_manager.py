@@ -460,6 +460,89 @@ async def test_accepts_valid_image(isolated_storage, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_accepts_image_jpg_content_type(isolated_storage, monkeypatch):
+    comic = sample_comic()
+    comic["source"] = "Fake"
+    comic["source_url"] = "fake://phase17"
+    pages = ["https://fake.local/001.jpg"]
+    storage.save_library({"version": 1, "comics": [comic]})
+    storage.save_comic_metadata(COMIC_ID, comic)
+    monkeypatch.setattr(
+        download_manager_module,
+        "source_registry",
+        SourceRegistry([FakeSourceAdapter(pages=pages)]),
+    )
+
+    async_client_class = httpx.AsyncClient
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=JPEG_BYTES,
+            headers={"content-type": "image/jpg"},
+            request=request,
+        )
+
+    def make_client(*args, **kwargs):
+        return async_client_class(transport=httpx.MockTransport(handler))
+
+    monkeypatch.setattr(download_manager_module.httpx, "AsyncClient", make_client)
+
+    manager = DownloadManager()
+    manager._rate_limit = 0
+    result = await manager._download_chapter(COMIC_ID, comic["chapters"][0])
+
+    chapter = storage.load_comic_metadata(COMIC_ID)["chapters"][0]
+    assert result == "downloaded"
+    assert chapter["status"] == "downloaded"
+    assert chapter["downloaded_pages"] == 1
+    assert chapter["failed_pages"] == []
+    assert chapter["error_message"] == ""
+
+
+@pytest.mark.asyncio
+async def test_rejects_image_jpg_with_invalid_magic_bytes(isolated_storage, monkeypatch):
+    comic = sample_comic()
+    comic["source"] = "Fake"
+    comic["source_url"] = "fake://phase17"
+    pages = ["https://fake.local/001.jpg"]
+    storage.save_library({"version": 1, "comics": [comic]})
+    storage.save_comic_metadata(COMIC_ID, comic)
+    monkeypatch.setattr(
+        download_manager_module,
+        "source_registry",
+        SourceRegistry([FakeSourceAdapter(pages=pages)]),
+    )
+    monkeypatch.setattr(download_manager_module, "MAX_RETRIES", 1)
+
+    async_client_class = httpx.AsyncClient
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            content=b"not a jpeg",
+            headers={"content-type": "image/jpg"},
+            request=request,
+        )
+
+    def make_client(*args, **kwargs):
+        return async_client_class(transport=httpx.MockTransport(handler))
+
+    monkeypatch.setattr(download_manager_module.httpx, "AsyncClient", make_client)
+
+    manager = DownloadManager()
+    manager._rate_limit = 0
+    result = await manager._download_chapter(COMIC_ID, comic["chapters"][0])
+
+    chapter = storage.load_comic_metadata(COMIC_ID)["chapters"][0]
+    assert result == "error"
+    assert chapter["status"] == "error"
+    assert chapter["downloaded_pages"] == 0
+    assert chapter["failed_pages"] == ["1"]
+    assert "expected JPEG magic bytes" in chapter["error_message"]
+
+
+@pytest.mark.asyncio
 async def test_partial_download_tracks_failures(isolated_storage, monkeypatch):
     comic = sample_comic()
     comic["source"] = "Fake"
