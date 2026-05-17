@@ -28,6 +28,21 @@ class AddComicRequest(BaseModel):
     url: str
 
 
+class ImportPreviewRequest(BaseModel):
+    url: str
+
+
+class ImportConfirmRequest(BaseModel):
+    url: str
+    auto_download: bool = False
+    title: str | None = None
+
+
+class ImportConfirmResponse(BaseModel):
+    comic_id: str
+    duplicate: bool = False
+
+
 class AddComicResponse(BaseModel):
     comic: Comic
     duplicate: bool = False
@@ -70,8 +85,8 @@ async def add_comic_from_source(payload: AddComicRequest) -> AddComicResponse:
 
 
 @router.post("/import/preview", response_model=ImportPreview)
-async def import_preview(body: dict) -> ImportPreview:
-    url, adapter, source_id = _resolve_import_source(body)
+async def import_preview(payload: ImportPreviewRequest) -> ImportPreview:
+    url, adapter, source_id = _resolve_import_source(payload.model_dump())
     duplicate = _find_duplicate(url, adapter.name, source_id)
     if duplicate:
         return _build_import_preview(
@@ -84,12 +99,10 @@ async def import_preview(body: dict) -> ImportPreview:
     return _build_import_preview(comic, duplicate=False)
 
 
-@router.post("/import/confirm")
-async def import_confirm(body: dict) -> dict:
-    url = _extract_import_url(body)
-    auto_download = bool(body.get("auto_download", False))
-    comic, duplicate = await _confirm_import(url, auto_download=auto_download)
-    return {"comic_id": comic.comic_id, "duplicate": duplicate}
+@router.post("/import/confirm", response_model=ImportConfirmResponse)
+async def import_confirm(payload: ImportConfirmRequest) -> ImportConfirmResponse:
+    comic, duplicate = await _confirm_import(payload.url, auto_download=payload.auto_download, title_override=payload.title)
+    return ImportConfirmResponse(comic_id=comic.comic_id, duplicate=duplicate)
 
 
 @router.get("/{comic_id}", response_model=Comic)
@@ -187,13 +200,15 @@ async def _fetch_import_metadata(adapter, url: str) -> Comic:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-async def _confirm_import(url: str, auto_download: bool) -> tuple[Comic, bool]:
+async def _confirm_import(url: str, auto_download: bool, title_override: str | None = None) -> tuple[Comic, bool]:
     url, adapter, source_id = _resolve_import_source({"url": url})
     duplicate = _find_duplicate(url, adapter.name, source_id)
     if duplicate:
         return Comic(**duplicate), True
 
     comic = await _fetch_import_metadata(adapter, url)
+    if title_override:
+        comic.title = title_override
     comic_data = comic.model_dump(mode="json")
     add_comic(comic_data)
     save_comic_metadata(comic.comic_id, comic_data)
