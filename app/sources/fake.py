@@ -1,11 +1,23 @@
 from datetime import datetime
 
-from app.models.comic import Chapter, Comic, ComicStatus
+from app.models.comic import Chapter, Comic, ComicStatus, SourceCapabilities
 from app.sources.base import InvalidSourceUrl
 
 
 class FakeSourceAdapter:
     name = "Fake"
+    domains: list[str] = []
+    capabilities = SourceCapabilities(
+        metadata=True,
+        cover=False,
+        chapter_list=True,
+        page_download=True,
+        languages=["en"],
+        supports_refresh=False,
+        supports_search=False,
+        requires_javascript=False,
+        requires_auth=False,
+    )
 
     def __init__(self, pages: list[str] | None = None) -> None:
         self.pages = pages or ["https://fake.local/pages/001.jpg"]

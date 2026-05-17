@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from app.models.comic import Chapter, Comic
+from app.models.comic import Chapter, Comic, SourceCapabilities
 
 
 class SourceError(Exception):
@@ -25,6 +25,7 @@ class SourceApiError(SourceError):
 
 class SourceAdapter(Protocol):
     name: str
+    capabilities: SourceCapabilities
 
     def can_handle(self, url: str) -> bool:
         """Return True when this adapter supports the URL."""

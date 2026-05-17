@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from app.models.comic import Chapter, Comic, ComicStatus
+from app.models.comic import Chapter, Comic, ComicStatus, SourceCapabilities
 from app.sources.base import InvalidSourceUrl, SourceApiError, SourceNotFound
 
 
@@ -18,6 +18,18 @@ MANGADEX_TITLE_RE = re.compile(
 
 class MangaDexAdapter:
     name = "MangaDex"
+    domains = ["mangadex.org", "www.mangadex.org"]
+    capabilities = SourceCapabilities(
+        metadata=True,
+        cover=True,
+        chapter_list=True,
+        page_download=True,
+        languages=["en"],
+        supports_refresh=True,
+        supports_search=False,
+        requires_javascript=False,
+        requires_auth=False,
+    )
 
     def __init__(self, client: httpx.AsyncClient | None = None, api_base: str = MANGADEX_API_BASE) -> None:
         self._client = client
@@ -26,7 +38,7 @@ class MangaDexAdapter:
     def can_handle(self, url: str) -> bool:
         parsed = urlparse(url)
         host = (parsed.hostname or "").lower()
-        if host not in {"mangadex.org", "www.mangadex.org"}:
+        if host not in self.domains:
             return False
         return MANGADEX_TITLE_RE.match(parsed.path) is not None
 

@@ -27,8 +27,8 @@ async def list_sources() -> list[dict]:
     return [
         {
             "name": adapter.name,
-            "domains": [],
-            "capabilities": {},
+            "domains": getattr(adapter, "domains", []),
+            "capabilities": adapter.capabilities.model_dump(),
         }
         for adapter in source_registry.adapters
     ]

@@ -38,6 +38,18 @@ class ReadingProgress(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class SourceCapabilities(BaseModel):
+    metadata: bool = True
+    cover: bool = True
+    chapter_list: bool = True
+    page_download: bool = True
+    languages: list[str] = Field(default_factory=list)
+    supports_refresh: bool = False
+    supports_search: bool = False
+    requires_javascript: bool = False
+    requires_auth: bool = False
+
+
 class ComicStatus(str, Enum):
     pending = "pending"
     metadata_fetching = "metadata_fetching"
