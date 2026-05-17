@@ -150,6 +150,88 @@ def test_add_mangadex_comic_endpoint_saves_library_and_metadata(isolated_storage
     assert metadata_path.exists()
 
 
+def test_import_preview_returns_metadata_without_saving(isolated_storage, monkeypatch):
+    async_client = httpx.AsyncClient(transport=make_transport(), base_url="https://api.mangadex.org")
+    monkeypatch.setattr(library_router, "source_registry", SourceRegistry([MangaDexAdapter(client=async_client)]))
+
+    try:
+        response = TestClient(app).post(
+            "/api/library/import/preview",
+            json={"url": f"https://mangadex.org/title/{TITLE_ID}/test-manga"},
+        )
+    finally:
+        import asyncio
+
+        asyncio.run(async_client.aclose())
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {
+        "source": "MangaDex",
+        "source_id": TITLE_ID,
+        "title": "Test Manga",
+        "description": "A MangaDex metadata fixture.",
+        "cover_url": f"https://uploads.mangadex.org/covers/{TITLE_ID}/cover-file.jpg.256.jpg",
+        "chapter_count": 2,
+        "languages": ["en"],
+        "duplicate": False,
+        "warnings": [],
+    }
+    assert storage.load_library()["comics"] == []
+    metadata_path = isolated_storage / "comics" / f"mangadex-{TITLE_ID}" / "metadata.json"
+    assert not metadata_path.exists()
+
+
+def test_import_preview_marks_duplicates(isolated_storage, monkeypatch):
+    async_client = httpx.AsyncClient(transport=make_transport(), base_url="https://api.mangadex.org")
+    monkeypatch.setattr(library_router, "source_registry", SourceRegistry([MangaDexAdapter(client=async_client)]))
+    client = TestClient(app)
+
+    try:
+        confirm = client.post(
+            "/api/library/import/confirm",
+            json={"url": f"https://mangadex.org/title/{TITLE_ID}/test-manga", "auto_download": False},
+        )
+        preview = client.post(
+            "/api/library/import/preview",
+            json={"url": f"https://mangadex.org/title/{TITLE_ID}"},
+        )
+    finally:
+        import asyncio
+
+        asyncio.run(async_client.aclose())
+
+    assert confirm.status_code == 200
+    assert preview.status_code == 200
+    data = preview.json()
+    assert data["duplicate"] is True
+    assert data["source_id"] == TITLE_ID
+    assert data["warnings"] == ["This comic is already in your library."]
+    assert len(storage.load_library()["comics"]) == 1
+
+
+def test_import_confirm_saves_library_and_returns_comic_id(isolated_storage, monkeypatch):
+    async_client = httpx.AsyncClient(transport=make_transport(), base_url="https://api.mangadex.org")
+    monkeypatch.setattr(library_router, "source_registry", SourceRegistry([MangaDexAdapter(client=async_client)]))
+
+    try:
+        response = TestClient(app).post(
+            "/api/library/import/confirm",
+            json={"url": f"https://mangadex.org/title/{TITLE_ID}/test-manga", "auto_download": False},
+        )
+    finally:
+        import asyncio
+
+        asyncio.run(async_client.aclose())
+
+    assert response.status_code == 200
+    assert response.json() == {"comic_id": f"mangadex-{TITLE_ID}", "duplicate": False}
+    assert len(storage.load_library()["comics"]) == 1
+
+    metadata_path = isolated_storage / "comics" / f"mangadex-{TITLE_ID}" / "metadata.json"
+    assert metadata_path.exists()
+
+
 def test_add_mangadex_comic_endpoint_prevents_duplicates(isolated_storage, monkeypatch):
     calls: list[str] = []
     async_client = httpx.AsyncClient(transport=make_transport(calls=calls), base_url="https://api.mangadex.org")

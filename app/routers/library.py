@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from app.models.comic import Comic, LibraryResponse
+from app.models.comic import Comic, ImportPreview, LibraryResponse
 from app.services.download_manager import download_manager
 from app.services.source_registry import source_registry
 from app.services.storage import (
@@ -65,36 +65,31 @@ async def filter_library(
 
 @router.post("/add", response_model=AddComicResponse)
 async def add_comic_from_source(payload: AddComicRequest) -> AddComicResponse:
-    url = _validate_add_url(payload.url)
+    comic, duplicate = await _confirm_import(payload.url, auto_download=True)
+    return AddComicResponse(comic=comic, duplicate=duplicate)
 
-    try:
-        adapter = source_registry.get_adapter(url)
-        source_id = adapter.get_source_id(url)
-    except InvalidSourceUrl as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except UnsupportedSource as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+@router.post("/import/preview", response_model=ImportPreview)
+async def import_preview(body: dict) -> ImportPreview:
+    url, adapter, source_id = _resolve_import_source(body)
     duplicate = _find_duplicate(url, adapter.name, source_id)
     if duplicate:
-        return AddComicResponse(comic=Comic(**duplicate), duplicate=True)
+        return _build_import_preview(
+            Comic(**duplicate),
+            duplicate=True,
+            warnings=["This comic is already in your library."],
+        )
 
-    try:
-        comic = await adapter.fetch_comic(url)
-    except InvalidSourceUrl as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except UnsupportedSource as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except SourceNotFound as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except SourceApiError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    comic = await _fetch_import_metadata(adapter, url)
+    return _build_import_preview(comic, duplicate=False)
 
-    comic_data = comic.model_dump(mode="json")
-    add_comic(comic_data)
-    save_comic_metadata(comic.comic_id, comic_data)
-    asyncio.create_task(download_manager.enqueue_comic(comic.comic_id))
-    return AddComicResponse(comic=comic, duplicate=False)
+
+@router.post("/import/confirm")
+async def import_confirm(body: dict) -> dict:
+    url = _extract_import_url(body)
+    auto_download = bool(body.get("auto_download", False))
+    comic, duplicate = await _confirm_import(url, auto_download=auto_download)
+    return {"comic_id": comic.comic_id, "duplicate": duplicate}
 
 
 @router.get("/{comic_id}", response_model=Comic)
@@ -158,6 +153,68 @@ def _validate_add_url(url: str) -> str:
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise HTTPException(status_code=400, detail="Enter a valid HTTP or HTTPS URL.")
     return normalized
+
+
+def _extract_import_url(body: dict) -> str:
+    url = body.get("url")
+    if not isinstance(url, str):
+        raise HTTPException(status_code=400, detail="Import URL is required.")
+    return url
+
+
+def _resolve_import_source(body: dict):
+    url = _validate_add_url(_extract_import_url(body))
+    try:
+        adapter = source_registry.get_adapter(url)
+        source_id = adapter.get_source_id(url)
+    except InvalidSourceUrl as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except UnsupportedSource as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return url, adapter, source_id
+
+
+async def _fetch_import_metadata(adapter, url: str) -> Comic:
+    try:
+        return await adapter.fetch_comic(url)
+    except InvalidSourceUrl as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except UnsupportedSource as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SourceNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except SourceApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+async def _confirm_import(url: str, auto_download: bool) -> tuple[Comic, bool]:
+    url, adapter, source_id = _resolve_import_source({"url": url})
+    duplicate = _find_duplicate(url, adapter.name, source_id)
+    if duplicate:
+        return Comic(**duplicate), True
+
+    comic = await _fetch_import_metadata(adapter, url)
+    comic_data = comic.model_dump(mode="json")
+    add_comic(comic_data)
+    save_comic_metadata(comic.comic_id, comic_data)
+    if auto_download:
+        asyncio.create_task(download_manager.enqueue_comic(comic.comic_id))
+    return comic, False
+
+
+def _build_import_preview(comic: Comic, duplicate: bool, warnings: list[str] | None = None) -> ImportPreview:
+    languages = sorted({chapter.language for chapter in comic.chapters if chapter.language})
+    return ImportPreview(
+        source=comic.source,
+        source_id=comic.source_id,
+        title=comic.title,
+        description=comic.description,
+        cover_url=comic.cover_url,
+        chapter_count=comic.chapter_count,
+        languages=languages,
+        duplicate=duplicate,
+        warnings=warnings or [],
+    )
 
 
 def _find_duplicate(url: str, source_name: str, source_id: str) -> dict | None:

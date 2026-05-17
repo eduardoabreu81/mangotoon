@@ -88,6 +88,18 @@ class Comic(BaseModel):
         return sum(1 for c in self.chapters if c.status == ChapterStatus.downloaded)
 
 
+class ImportPreview(BaseModel):
+    source: str
+    source_id: str
+    title: str
+    description: str = ""
+    cover_url: str = ""
+    chapter_count: int = 0
+    languages: list[str] = Field(default_factory=list)
+    duplicate: bool = False
+    warnings: list[str] = Field(default_factory=list)
+
+
 class LibraryResponse(BaseModel):
     comics: list[Comic]
     total: int
