@@ -785,6 +785,239 @@ h1 {
   max-height: none;
 }
 
+/* Chapter Drawer */
+
+.reader-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.5);
+  transition: opacity var(--transition-normal);
+}
+
+.reader-drawer-overlay[hidden] {
+  display: none;
+}
+
+.reader-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 320px;
+  z-index: 35;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(0);
+  transition: transform var(--transition-normal);
+  box-shadow: var(--shadow-lg);
+}
+
+.reader-drawer[hidden] {
+  display: flex;
+  transform: translateX(-100%);
+}
+
+.reader-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.reader-drawer-header h2 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.reader-drawer-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.reader-drawer-close-btn:hover {
+  color: var(--text-primary);
+}
+
+.reader-drawer-error {
+  padding: 16px 20px;
+  color: var(--danger);
+  font-size: 0.85rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-drawer-error[hidden] {
+  display: none;
+}
+
+.reader-drawer-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.reader-drawer-chapter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid rgba(42, 42, 42, 0.5);
+}
+
+.reader-drawer-chapter:last-child {
+  border-bottom: none;
+}
+
+.reader-drawer-chapter:hover {
+  background: var(--bg-hover);
+}
+
+.reader-drawer-chapter.active {
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+}
+
+.reader-drawer-status {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.reader-drawer-status.downloaded {
+  background: var(--success);
+}
+
+.reader-drawer-status.not_downloaded {
+  background: var(--text-muted);
+  border: 1px solid var(--border-light);
+}
+
+.reader-drawer-status.error {
+  background: var(--danger);
+}
+
+.reader-drawer-status.partial {
+  background: var(--accent);
+}
+
+.reader-drawer-status.downloading,
+.reader-drawer-status.queued {
+  background: var(--info);
+}
+
+.reader-drawer-chapter-num {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 52px;
+  white-space: nowrap;
+}
+
+.reader-drawer-chapter-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reader-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.reader-drawer-dl-btn,
+.reader-drawer-retry-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.reader-drawer-dl-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.reader-drawer-retry-btn {
+  color: var(--warning);
+  border-color: rgba(243, 156, 18, 0.3);
+}
+
+.reader-drawer-retry-btn:hover {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #1a1a1a;
+}
+
+.reader-drawer-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 36;
+  background: var(--success);
+  color: #1a1a1a;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  transition: opacity var(--transition-normal);
+}
+
+.reader-drawer-toast[hidden] {
+  display: none;
+}
+
+.reader-drawer-toast.error {
+  background: var(--danger);
+  color: #fff;
+}
+
+.reader-drawer-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.reader-drawer-pages {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* Chapter Complete Overlay */
 
 .chapter-complete-overlay {
@@ -1519,6 +1752,15 @@ body.sidebar-open {
     display: none;
   }
 
+  .reader-drawer-toggle-btn {
+    display: inline-flex !important;
+  }
+
+  .reader-drawer {
+    width: 100%;
+    max-width: 320px;
+  }
+
   .sidebar {
     top: auto;
     right: 0;
@@ -1974,4 +2216,12 @@ body.sidebar-open {
     flex: 1 1 100%;
     order: 10;
   }
+}
+
+/* Error message on comic cards */
+.comic-error-msg {
+  font-size: 0.75rem;
+  color: #e74c3c;
+  margin-top: 0.25rem;
+  line-height: 1.3;
 }

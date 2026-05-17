@@ -6,6 +6,7 @@
   var comicId = null;
   var readerData = null;
   var chapters = [];
+  var chaptersAll = [];
   var currentChapterIdx = 0;
   var currentPage = 1;
   var totalPages = 0;
@@ -14,6 +15,8 @@
   var autoHideTimer = null;
   var zoomLevel = 100;
   var fitMode = 0; // 0=fit-screen, 1=fit-width, 2=fit-height, 3=original
+  var drawerOpen = false;
+  var drawerLoading = false;
 
   document.addEventListener("DOMContentLoaded", function () {
     init();
@@ -29,6 +32,7 @@
     }
 
     loadReaderData();
+    loadChapterList();
     setupControls();
     setupAutoHide();
   }
@@ -69,6 +73,17 @@
       })
       .finally(function () {
         showLoading(false);
+      });
+  }
+
+  function loadChapterList() {
+    API.get("/reader/" + encodeURIComponent(comicId))
+      .then(function (data) {
+        chaptersAll = data.chapters || [];
+        renderChapterDrawer();
+      })
+      .catch(function () {
+        showDrawerError("Failed to load chapter list.");
       });
   }
 
@@ -119,12 +134,28 @@
     document.getElementById("btn-fit").addEventListener("click", cycleFitMode);
     document.getElementById("btn-fullscreen").addEventListener("click", toggleFullscreen);
 
+    document.getElementById("btn-chapter-drawer").addEventListener("click", toggleChapterDrawer);
+
+    document.getElementById("btn-drawer-close").addEventListener("click", closeChapterDrawer);
+
+    document.getElementById("reader-drawer-overlay").addEventListener("click", closeChapterDrawer);
+
     document.getElementById("btn-next-chapter-overlay").addEventListener("click", function () {
       hideChapterComplete();
       goToNextChapter();
     });
 
     document.addEventListener("keydown", function (e) {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") {
+        return;
+      }
+
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        toggleChapterDrawer();
+        return;
+      }
+
       if (!chapters.length) return;
       switch (e.key) {
         case "ArrowRight":
@@ -150,7 +181,11 @@
           loadPage();
           break;
         case "Escape":
-          window.location.href = "/";
+          if (drawerOpen) {
+            closeChapterDrawer();
+          } else {
+            window.location.href = "/";
+          }
           break;
         case "f":
         case "F":
@@ -192,6 +227,7 @@
 
     hideChapterComplete();
     loadPage();
+    renderChapterDrawer();
   }
 
   function loadPage() {
@@ -335,6 +371,251 @@
       }
       if (foundIdx >= 0) showChapter(foundIdx, 1);
     });
+  }
+
+  function toggleChapterDrawer() {
+    if (drawerOpen) {
+      closeChapterDrawer();
+    } else {
+      openChapterDrawer();
+    }
+  }
+
+  function openChapterDrawer() {
+    drawerOpen = true;
+    document.getElementById("reader-drawer-overlay").hidden = false;
+    document.getElementById("reader-drawer").hidden = false;
+    renderChapterDrawer();
+  }
+
+  function closeChapterDrawer() {
+    drawerOpen = false;
+    document.getElementById("reader-drawer-overlay").hidden = true;
+    document.getElementById("reader-drawer").hidden = true;
+  }
+
+  function renderChapterDrawer() {
+    if (!drawerOpen) return;
+
+    var list = document.getElementById("reader-drawer-list");
+    var errorEl = document.getElementById("reader-drawer-error");
+    if (!list) return;
+
+    if (chaptersAll.length === 0) {
+      list.innerHTML =
+        '<div class="reader-drawer-empty">No chapters available.</div>';
+      errorEl.hidden = false;
+      document.getElementById("reader-drawer-error-msg").textContent =
+        "No chapters available.";
+      return;
+    }
+
+    errorEl.hidden = true;
+
+    var activeKey = "";
+    var chapter = chapters[currentChapterIdx];
+    if (chapter) {
+      activeKey = chapter.chapter_id;
+    }
+
+    list.innerHTML = chaptersAll
+      .map(function (ch) {
+        var status = ch.status || "not_downloaded";
+        var numLabel = ch.chapter_number || "?";
+        var title = ch.title || "";
+        var isActive = ch.chapter_id === activeKey;
+
+        var actionsHtml = "";
+        if (status === "not_downloaded") {
+          actionsHtml =
+            '<div class="reader-drawer-actions">' +
+            '<button class="reader-drawer-dl-btn" title="Download" data-action="download" data-chapter-id="' +
+            escapeAttr(ch.chapter_id) +
+            '">↓</button>' +
+            "</div>";
+        } else if (status === "error" || status === "partial") {
+          actionsHtml =
+            '<div class="reader-drawer-actions">' +
+            '<button class="reader-drawer-retry-btn" title="Retry" data-action="retry" data-chapter-id="' +
+            escapeAttr(ch.chapter_id) +
+            '">↻</button>' +
+            "</div>";
+        } else if (status === "downloaded") {
+          actionsHtml =
+            '<div class="reader-drawer-actions">' +
+            '<span class="reader-drawer-pages">' +
+            (ch.pages || "?") +
+            "p</span>" +
+            "</div>";
+        }
+
+        var rowClass = "reader-drawer-chapter";
+        if (isActive) {
+          rowClass += " active";
+        }
+        if (status === "downloaded") {
+          rowClass += " clickable";
+        }
+
+        return (
+          '<div class="' +
+          rowClass +
+          '" data-chapter-id="' +
+          escapeAttr(ch.chapter_id) +
+          '" data-status="' +
+          escapeAttr(status) +
+          '">' +
+          '<span class="reader-drawer-status ' +
+          escapeAttr(status) +
+          '"></span>' +
+          '<span class="reader-drawer-chapter-num">Ch. ' +
+          escapeHtml(String(numLabel)) +
+          "</span>" +
+          '<span class="reader-drawer-chapter-title">' +
+          escapeHtml(title) +
+          "</span>" +
+          actionsHtml +
+          "</div>"
+        );
+      })
+      .join("");
+
+    attachDrawerEvents();
+  }
+
+  function attachDrawerEvents() {
+    var list = document.getElementById("reader-drawer-list");
+    if (!list) return;
+
+    var rows = list.querySelectorAll(".reader-drawer-chapter");
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].addEventListener("click", function (e) {
+        var target = e.target;
+        if (target.tagName === "BUTTON") return;
+
+        var row = target.closest(".reader-drawer-chapter");
+        if (!row) return;
+
+        var chapterId = row.getAttribute("data-chapter-id");
+        var status = row.getAttribute("data-status");
+        handleDrawerChapterClick(chapterId, status);
+      });
+    }
+
+    var dlBtns = list.querySelectorAll('[data-action="download"]');
+    for (var j = 0; j < dlBtns.length; j++) {
+      dlBtns[j].addEventListener("click", function (e) {
+        e.stopPropagation();
+        var chapterId = this.getAttribute("data-chapter-id");
+        downloadChapter(chapterId);
+      });
+    }
+
+    var retryBtns = list.querySelectorAll('[data-action="retry"]');
+    for (var k = 0; k < retryBtns.length; k++) {
+      retryBtns[k].addEventListener("click", function (e) {
+        e.stopPropagation();
+        var chapterId = this.getAttribute("data-chapter-id");
+        retryChapter(chapterId);
+      });
+    }
+  }
+
+  function handleDrawerChapterClick(chapterId, status) {
+    if (status === "downloaded") {
+      navigateToChapter(chapterId);
+    }
+  }
+
+  function navigateToChapter(chapterId) {
+    for (var i = 0; i < chapters.length; i++) {
+      if (chapters[i].chapter_id === chapterId) {
+        closeChapterDrawer();
+        showChapter(i, 1);
+        return;
+      }
+    }
+    showToast("Chapter not yet downloaded.");
+  }
+
+  function downloadChapter(chapterId) {
+    showToast("Starting download…");
+
+    API.post(
+      "/library/" +
+        encodeURIComponent(comicId) +
+        "/chapters/" +
+        encodeURIComponent(chapterId) +
+        "/download"
+    )
+      .then(function () {
+        showToast("Download started.");
+        refreshChapterStatus(chapterId, "queued");
+      })
+      .catch(function () {
+        showToast("Download failed.", true);
+      });
+  }
+
+  function retryChapter(chapterId) {
+    showToast("Retrying download…");
+
+    API.post(
+      "/downloads/" +
+        encodeURIComponent(comicId) +
+        "/chapters/" +
+        encodeURIComponent(chapterId) +
+        "/retry"
+    )
+      .then(function () {
+        showToast("Retry queued.");
+        refreshChapterStatus(chapterId, "queued");
+      })
+      .catch(function () {
+        showToast("Retry failed.", true);
+      });
+  }
+
+  function refreshChapterStatus(chapterId, newStatus) {
+    for (var i = 0; i < chaptersAll.length; i++) {
+      if (chaptersAll[i].chapter_id === chapterId) {
+        chaptersAll[i].status = newStatus;
+        break;
+      }
+    }
+    renderChapterDrawer();
+  }
+
+  function showDrawerError(msg) {
+    var errorEl = document.getElementById("reader-drawer-error");
+    if (errorEl) {
+      errorEl.hidden = false;
+      document.getElementById("reader-drawer-error-msg").textContent = msg;
+    }
+  }
+
+  function showToast(msg, isError) {
+    var toast = document.getElementById("reader-drawer-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "reader-drawer-toast";
+      toast.className = "reader-drawer-toast";
+      toast.hidden = true;
+      var drawer = document.getElementById("reader-drawer");
+      if (drawer) drawer.appendChild(toast);
+    }
+
+    toast.textContent = msg;
+    toast.className = "reader-drawer-toast";
+    if (isError) {
+      toast.classList.add("error");
+    }
+    toast.hidden = false;
+
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(function () {
+      toast.hidden = true;
+    }, 3000);
   }
 
   function toggleUi() {

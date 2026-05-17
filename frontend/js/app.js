@@ -623,7 +623,7 @@
         addSourceDetected.textContent = "Detected: " + result.source;
         renderCapabilities(result.source);
       } else {
-        addSourceDetected.textContent = "Source not recognized";
+        addSourceDetected.textContent = "Currently supported: MangaDex title URLs only.";
         addCapabilities && (addCapabilities.innerHTML = "");
       }
     }).catch(function () {
@@ -762,6 +762,20 @@
         " / " +
         status.total_chapters +
         " chapters";
+    }
+
+    // Show error message if present
+    var errorEl = card.querySelector(".comic-error-msg");
+    if (status.error_message) {
+      if (!errorEl) {
+        errorEl = document.createElement("div");
+        errorEl.className = "comic-error-msg";
+        card.querySelector(".comic-info").appendChild(errorEl);
+      }
+      errorEl.textContent = status.error_message;
+      errorEl.hidden = false;
+    } else if (errorEl) {
+      errorEl.hidden = true;
     }
 
     var dlBtn = card.querySelector("[data-download]");

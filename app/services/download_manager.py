@@ -246,7 +246,17 @@ class DownloadManager:
                             continue
                         job.status = DownloadStatus.downloading.value
                         job.current_chapter_id = chapter.get("chapter_id")
-                    chapter_status = await self._download_chapter(comic_id, chapter, job)
+                    try:
+                        chapter_status = await asyncio.wait_for(
+                            self._download_chapter(comic_id, chapter, job),
+                            timeout=300.0,  # 5 minute timeout per chapter
+                        )
+                    except asyncio.TimeoutError:
+                        ch_id = chapter.get("chapter_id") or "unknown"
+                        self._set_chapter_error(comic_id, ch_id, "Chapter download timed out after 5 minutes.")
+                        chapter_status = "error"
+                        if job:
+                            job.error_chapters += 1
                     if job and chapter_status == "downloaded":
                         job.downloaded_chapters += 1
                     elif job and chapter_status in ("error", "partial"):

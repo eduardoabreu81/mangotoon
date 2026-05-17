@@ -3,13 +3,18 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.storage import save_library, save_settings
+from app.services.storage import save_library
 
 client = TestClient(app)
 
 
 class TestLibrary:
-    def test_library_empty_on_fresh_install(self):
+    def test_library_empty_on_fresh_install(self, tmp_path, monkeypatch):
+        from app.services import storage
+        monkeypatch.setattr(storage, "DATA_DIR", tmp_path)
+        monkeypatch.setattr(storage, "COMICS_DIR", tmp_path / "comics")
+        storage.save_library({"version": 1, "comics": []})
+
         response = client.get("/api/library")
         assert response.status_code == 200
         data = response.json()

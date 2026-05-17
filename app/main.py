@@ -56,6 +56,14 @@ def create_app() -> FastAPI:
     async def comic_page() -> FileResponse:
         return FileResponse(FRONTEND_DIR / "comic.html")
 
+    @app.get("/settings")
+    async def settings_page() -> FileResponse:
+        return FileResponse(FRONTEND_DIR / "settings.html")
+
+    @app.get("/history")
+    async def history_page() -> FileResponse:
+        return FileResponse(FRONTEND_DIR / "history.html")
+
     return app
 
 

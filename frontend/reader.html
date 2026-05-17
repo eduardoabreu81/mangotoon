@@ -15,6 +15,7 @@
       <span id="reader-title" class="reader-manga-title"></span>
       <span id="reader-chapter-label" class="reader-chapter-label"></span>
     </div>
+    <button id="btn-chapter-drawer" class="reader-ctrl-btn reader-drawer-toggle-btn" title="Chapter list" aria-label="Toggle chapter list">☰</button>
     <div class="reader-controls" id="reader-controls">
       <button id="btn-zoom-out" class="reader-ctrl-btn" title="Zoom out" aria-label="Zoom out">−</button>
       <button id="btn-zoom-reset" class="reader-ctrl-btn" title="Reset zoom" aria-label="Reset zoom">100%</button>
@@ -71,6 +72,19 @@
     </div>
     <button id="btn-next-chapter" class="reader-nav-btn" aria-label="Next chapter">Ch ›</button>
   </footer>
+
+  <!-- Chapter drawer -->
+  <div id="reader-drawer-overlay" class="reader-drawer-overlay" hidden></div>
+  <div id="reader-drawer" class="reader-drawer" hidden>
+    <div class="reader-drawer-header">
+      <h2>Chapters</h2>
+      <button id="btn-drawer-close" class="reader-drawer-close-btn" aria-label="Close">×</button>
+    </div>
+    <div class="reader-drawer-error" id="reader-drawer-error" hidden>
+      <p id="reader-drawer-error-msg">Failed to load chapters.</p>
+    </div>
+    <div class="reader-drawer-list" id="reader-drawer-list"></div>
+  </div>
 
   <script src="/static/js/api.js"></script>
   <script src="/static/js/reader.js"></script>

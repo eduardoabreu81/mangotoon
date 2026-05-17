@@ -8,6 +8,14 @@ from app.services.storage import load_comic_metadata
 router = APIRouter(prefix="/downloads", tags=["downloads"])
 
 
+def _collect_error_messages(meta: dict) -> str:
+    messages = []
+    for chapter in meta.get("chapters", []):
+        if chapter.get("status") == "error" and chapter.get("error_message"):
+            messages.append(f"{chapter.get('title', chapter.get('chapter_id'))}: {chapter['error_message']}")
+    return "; ".join(messages[:3])  # Limit to first 3 errors
+
+
 @router.get("/{comic_id}/status")
 async def get_download_status(comic_id: str) -> dict:
     status = download_manager.get_status(comic_id)
@@ -41,6 +49,7 @@ async def get_download_status(comic_id: str) -> dict:
         "downloaded_chapters": downloaded,
         "error_chapters": errors,
         "current_chapter_id": None,
+        "error_message": _collect_error_messages(meta),
     }
 
 

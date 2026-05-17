@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import httpx
 import pytest
@@ -667,3 +668,57 @@ async def test_fetch_with_retry_uses_mocked_httpx(monkeypatch):
     content = await manager._fetch_with_retry("https://pages.example/001.jpg")
 
     assert content == JPEG_BYTES
+
+
+@pytest.mark.asyncio
+async def test_chapter_timeout_sets_error_status(isolated_storage, monkeypatch):
+    """If _download_chapter times out, chapter status should be error, not stuck downloading."""
+    from app.services.download_manager import download_manager
+    from app.services.storage import load_comic_metadata
+
+    comic_id = "timeout-test"
+    chapter_id = "ch-001"
+
+    # Create minimal metadata
+    meta = {
+        "comic_id": comic_id,
+        "title": "Timeout Test",
+        "source_url": "https://mangadex.org/title/test",
+        "source": "mangadex",
+        "chapters": [
+            {
+                "chapter_id": chapter_id,
+                "title": "Chapter 1",
+                "chapter_number": 1,
+                "status": "queued",
+                "source_chapter_id": "test-ch-id",
+            }
+        ],
+    }
+    comic_dir = isolated_storage / "comics" / comic_id
+    comic_dir.mkdir(parents=True, exist_ok=True)
+    (comic_dir / "metadata.json").write_text(json.dumps(meta))
+
+    # Mock adapter to hang forever
+    class HangingAdapter(FakeSourceAdapter):
+        async def get_chapter_pages(self, comic, chapter):
+            await asyncio.sleep(1000)
+            return []
+
+    monkeypatch.setattr(
+        download_manager_module,
+        "source_registry",
+        SourceRegistry([HangingAdapter(pages=[])]),
+    )
+
+    # Start download
+    await download_manager.enqueue_comic(comic_id)
+    # Wait a bit for timeout
+    await asyncio.sleep(0.5)
+
+    # Check status
+    meta_after = load_comic_metadata(comic_id)
+    chapter = meta_after["chapters"][0]
+    assert chapter["status"] != "downloading", "Chapter should not be stuck in downloading after timeout"
+
+    download_manager.cancel_comic(comic_id)
