@@ -14,9 +14,18 @@
 | p2 | ✅ Completo | Frontend grid, search, sort, modal |
 | p3 | ✅ Completo | MangaDex metadata adapter + Add Manga wiring |
 | p4 | ✅ Completo | Download manager + progress polling |
-| p5 | 🔄 Em andamento | Reader |
-| p6 | ⏳ Pendente | Settings page |
-| p7 | ⏳ Pendente | Polish e release readiness |
+| p4.5 | ✅ Completo | Stabilization — local page paths, partial download, docs |
+| p5 | 🔄 Next | Reader MVP |
+| p6 | ⏳ Pendente | Reader polish |
+| p7 | ⏳ Pendente | History page |
+| p8 | ⏳ Pendente | Settings page |
+| p9 | ⏳ Pendente | Library UX upgrade |
+| p10 | ⏳ Pendente | Download controls |
+| p11 | ⏳ Pendente | MangaDex quality |
+| p12 | ⏳ Pendente | Import preview |
+| p13 | ⏳ Pendente | Packaging |
+| p14 | ⏳ Pendente | Backup and export |
+| p15 | ⏳ Pendente | Second source adapter |
 
 ---
 
@@ -24,18 +33,19 @@
 
 | Agent | Role | Model | Status |
 |-------|------|-------|--------|
-| **manager** (Claude) | Orquestração | Claude Sonnet 4.6 | 🔄 Rodando no tmux |
-| **dev_codex** | Backend | gpt-5.5 | ⏳ Aguardando instruções do manager |
-| **dev_opencode** | Frontend | deepseek/deepseek-v4-pro | ⏳ Aguardando instruções do manager |
+| **manager** (Claude) | Orquestração | Claude Sonnet 4.6 | ⏳ Disponível |
+| **dev_codex** | Backend | gpt-5.5 | ⏳ Disponível |
+| **dev_opencode** | Frontend | deepseek/deepseek-v4-pro | ⏳ Disponível |
 | **dev_kimi** | Code review | kimi-k2.6 | ⏳ Disponível |
-| **Hermes** (eu) | Devil's advocate | kimi-k2.6 | 👁️ Monitorando |
+| **Hermes** (eu) | Devil's advocate + Docs | kimi-k2.6 | 👁️ Monitorando |
 
 **Tmux sessions:**
 ```bash
-dev_codex: 1 windows
-dev_kimi: 1 windows
-dev_opencode: 1 windows
-manager: 1 windows (Claude ativo, orquestrando)
+# Iniciar quando necessário:
+tmux new-session -d -s manager -n claude "claude"
+tmux new-session -d -s dev_codex -n codex "codex"
+tmux new-session -d -s dev_opencode -n opencode "opencode"
+tmux new-session -d -s dev_kimi -n kimi "kimi"
 ```
 
 ---
@@ -49,7 +59,7 @@ manager: 1 windows (Claude ativo, orquestrando)
 - `app/models/comic.py` — Pydantic models (Comic, Chapter, ReadingProgress, Settings, etc.)
 - `app/services/storage.py` — JSON storage com atomic writes
 - `app/services/source_registry.py` — Source registry
-- `app/services/download_manager.py` — Async download queue, rate limiting, retry
+- `app/services/download_manager.py` — Async download queue, rate limiting, retry, local_pages persistence
 - `app/sources/base.py` — SourceAdapter protocol
 - `app/sources/mangadex.py` — MangaDex adapter (httpx)
 - `app/routers/library.py` — GET/POST/DELETE /api/library
@@ -72,12 +82,12 @@ manager: 1 windows (Claude ativo, orquestrando)
 - `tests/test_library.py` — Library endpoints, settings, delete
 - `tests/test_mangadex_adapter.py` — Mocked MangaDex adapter tests
 - `tests/test_frontend_api.py` — Frontend API integration tests
-- `tests/test_download_manager.py` — Download manager tests
+- `tests/test_download_manager.py` — Download manager tests (35 total)
 
 ### Config
 - `.gitignore` — Python cache, .env, data, uv.lock
 - `.env.example` — Placeholders seguros
-- `README.md` — Public docs
+- `README.md` — Public docs (atualizado com scope real)
 - `AGENTS.md` — Agent guide
 - `docs/PROJECT_LOG.md` — Change log
 
@@ -85,49 +95,54 @@ manager: 1 windows (Claude ativo, orquestrando)
 
 ## Testes
 
-**Resultado:** 32/32 passam ✅ (Phase 4)
+**Resultado:** 35/35 passam ✅ (Phase 4.5)
 ```
-tests/test_api.py::test_health_returns_ok PASSED
-tests/test_api.py::test_root_serves_library_page PASSED
-tests/test_init_data.py::test_init_data_creates_expected_files PASSED
-tests/test_library.py::TestLibrary::test_library_empty_on_fresh_install PASSED
-tests/test_library.py::TestLibrary::test_get_comic_not_found PASSED
-tests/test_library.py::TestLibrary::test_delete_comic_not_found PASSED
-tests/test_library.py::TestLibrary::test_library_with_comic PASSED
-tests/test_library.py::TestLibrary::test_get_comic_detail PASSED
-tests/test_library.py::TestSettings::test_get_settings PASSED
-tests/test_library.py::TestSettings::test_post_settings PASSED
-tests/test_library.py::TestSettings::test_post_settings_invalid_concurrency PASSED
-tests/test_mangadex_adapter.py — 6 tests PASSED
+tests/test_api.py — 2 tests PASSED
+tests/test_download_manager.py — 12 tests PASSED
 tests/test_frontend_api.py — 4 tests PASSED
-tests/test_download_manager.py — 9 tests PASSED
+tests/test_init_data.py — 1 test PASSED
+tests/test_library.py — 9 tests PASSED
+tests/test_mangadex_adapter.py — 7 tests PASSED
 ```
 
 ---
 
-## Próximo Passo: Phase 5 — Reader
+## Próximo Passo: Phase 5 — Reader MVP
 
-**Prompt:** `codex_manga_app_phase_prompts/CODEX_PHASE_05_reader.txt`
+**Objetivo:** ler capítulos baixados offline.
 
-**O que precisa ser feito:**
-1. Rota `GET /reader/{comic_id}/{chapter_id}/{page}` para servir imagens locais
-2. Rota `GET /reader/{comic_id}/progress` — get reading progress
-3. Rota `POST /reader/{comic_id}/progress` — save reading progress
-4. Integrar `frontend/reader.html` com navegação real
-5. Keyboard shortcuts (left/right arrow, escape, F)
-6. Click zones (left prev, right next, center toggle controls)
-7. Chapter selector, progress bar
-8. Save/restore reading progress
-9. Handle missing images
-10. Tests
+### Backend
+Criar `app/routers/reader.py`:
+- `GET /api/reader/{comic_id}` — dados mínimos para abrir reader
+- `GET /api/reader/{comic_id}/chapters/{chapter_id}` — capítulo com lista de páginas
+- `GET /api/reader/{comic_id}/chapters/{chapter_id}/pages/{page_index}` — serve imagem local
+- `GET /api/reader/{comic_id}/progress` — get reading progress
+- `POST /api/reader/{comic_id}/progress` — save reading progress
 
-**Aceitação:**
-- Usuário clica em manga card → abre reader
-- Reader carrega última página lida
-- Navegação por teclado, click, e botões
-- Progresso salvo automaticamente
-- Próxima sessão resume do ponto certo
-- Tests passam
+### Frontend
+Criar `frontend/reader.html` + `frontend/js/reader.js`:
+- Abrir card da biblioteca no reader (`/reader?comic_id=...`)
+- Carregar último progresso
+- Navegar com: seta esquerda/direita, click/tap lateral, swipe mobile
+- Dropdown de capítulos
+- Auto-save de progresso
+- Quando chegar na última página: permitir próximo capítulo
+- Botão voltar para Library
+- Erro claro se capítulo não estiver baixado
+
+### UX mínima
+- Reader escuro, limpo, sem distração
+- Top bar: ← Library | Title | Chapter X | Page 4/24
+- Bottom bar: Chapter selector | progress bar
+
+### Aceitação
+- Clicar no card abre reader
+- Reader mostra páginas locais reais
+- Não usa internet para ler capítulo baixado
+- Progresso persiste
+- Reabrir manga volta na página correta
+- Se capítulo não baixado, mostra mensagem útil
+- 35 testes existentes não quebram
 
 ---
 
@@ -141,6 +156,8 @@ tests/test_download_manager.py — 9 tests PASSED
 - **Tests:** pytest + TestClient
 - **Package manager:** uv
 - **UV cache fix:** `export UV_CACHE_DIR=/tmp/uv-cache` (Codex sandbox)
+- **Download behavior:** Add Manga = fetch metadata + auto-download. Download button = retry/resume.
+- **Chapter metadata:** Now includes `local_pages: list[str]` with ordered relative paths
 
 ---
 

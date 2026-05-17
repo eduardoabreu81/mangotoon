@@ -11,23 +11,32 @@
 - **Purpose:** Local-first manga reader and library manager
 - **Version:** v0.1.0
 - **Stack:** FastAPI + Pydantic (backend), Vanilla JS (frontend), JSON storage
-- **Status:** Phases 0-4 complete, Phase 5 in progress
+- **Status:** Phases 0-4.5 complete, Phase 5 (Reader MVP) next
 
 ---
 
 ## Backlog / Roadmap
 
-| Item | Status | Target Phase |
+| Phase | Status | Description |
 |---|---|---|
-| Cleanup and baseline | ✅ Complete | Phase 0 |
-| Local storage and library API | ✅ Complete | Phase 1 |
-| Frontend library UI | ✅ Complete | Phase 2 |
-| MangaDex metadata adapter | ✅ Complete | Phase 3 |
-| Download manager | ✅ Complete | Phase 4 |
-| Reader | 🔄 In Progress | Phase 5 |
-| Settings page | ⏳ Planned | Phase 6 |
-| Polish and release readiness | ⏳ Planned | Phase 7 |
-| Documentation (AGENTS.md, PROJECT_LOG) | ✅ Complete | Ongoing |
+| 0 | ✅ Complete | Baseline — FastAPI, models, tests, static serving |
+| 1 | ✅ Complete | Static frontend — dark theme, vanilla JS |
+| 2 | ✅ Complete | Library & Settings API |
+| 3 | ✅ Complete | MangaDex adapter — metadata fetch |
+| 4 | ✅ Complete | Download manager — async queue, retry, progress |
+| 4.5 | ✅ Complete | Stabilization — local page paths, partial download, docs |
+| 5 | 🔄 Next | Reader MVP — offline viewer, keyboard nav, progress save |
+| 6 | ⏳ Planned | Reader polish — fullscreen, fit modes, zoom, auto-advance |
+| 7 | ⏳ Planned | History page — last read tracking, resume |
+| 8 | ⏳ Planned | Settings page — concurrency, rate limit, theme |
+| 9 | ⏳ Planned | Library UX upgrade — sidebar, filters, context menu |
+| 10 | ⏳ Planned | Download controls — pause, resume, cancel, retry |
+| 11 | ⏳ Planned | MangaDex quality — language filter, dedup, data saver |
+| 12 | ⏳ Planned | Import preview — metadata preview before download |
+| 13 | ⏳ Planned | Packaging — run.bat, Dockerfile |
+| 14 | ⏳ Planned | Backup and export |
+| 15 | ⏳ Planned | Second source adapter |
+| Documentation | ✅ Complete | AGENTS.md, PROJECT_LOG, TELEGRAM_HANDOFF |
 
 ---
 
@@ -95,9 +104,47 @@ Fizemos o rebuild completo do projeto ComicLib (antigo) para MangoToon. Implemen
 - Sempre validar APP_NAME = "MangoToon" em novos arquivos
 
 **Próximos passos / Next steps:**
-1. Phase 5: Reader — image serving, navigation, progress tracking
-2. Phase 6: Settings page — full UI for configuration
-3. Phase 7: Polish — error handling, mobile, performance
+1. Phase 5: Reader MVP — image serving, navigation, progress tracking
+2. Phase 6: Reader polish — fullscreen, fit modes, zoom, auto-advance
+3. Phase 7: History page — last read tracking, resume
+4. Phase 8: Settings page — full UI for configuration
+5. Phase 9: Library UX upgrade — sidebar, filters, context menu
+6. Phase 10: Download controls — pause, resume, cancel, retry
+7. Phase 11: MangaDex quality — language filter, dedup, data saver
+8. Phase 12: Import preview — metadata preview before download
+9. Phase 13: Packaging — run.bat, Dockerfile
+10. Phase 14: Backup and export
+11. Phase 15: Second source adapter
+
+---
+
+## Phase 4.5 Log — 2026-05-17
+
+**Stabilization — Download Metadata + Documentation**
+
+**Backend (Hermes):**
+- Added `local_pages: list[str]` to Chapter model
+- Updated `download_manager._download_chapter` to persist ordered relative paths
+- Improved partial download handling: failed pages → `error` (0 pages) or `partial` (some pages)
+- Removed ad-hoc `total_chapters`/`downloaded_chapters` from library.json
+- `_update_library_counts` now syncs chapters from metadata to library
+- Comic model validation stable
+
+**Docs:**
+- Rewrote README.md with full scope, changelog, roadmap, project structure
+- Aligned with actual Phases 0-4.5 implementation
+
+**Frontend:**
+- Added UI hint in Add Manga modal: "Adding a manga will fetch its metadata and start downloading chapters automatically."
+
+**Tests:**
+- 35/35 passing (3 new tests added)
+- `test_chapter_status_persisted_after_download` — verifies local_pages persisted
+- `test_partial_download_marks_chapter_error` — 0 pages → error status
+- `test_partial_download_marks_chapter_partial` — some pages → partial status
+- `test_library_response_validates_through_comic_model` — Comic model validation
+
+**Commit:** `9dbc368` — 5 files changed, +246/-26 lines
 
 ---
 
