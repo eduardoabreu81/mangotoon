@@ -130,8 +130,8 @@ async def remove_comic(comic_id: str) -> dict[str, str]:
     return {"message": f"Comic '{comic_id}' deleted"}
 
 
-@router.post("/{comic_id}/refresh", response_model=Comic)
-async def refresh_comic_metadata(comic_id: str) -> Comic:
+@router.post("/{comic_id}/refresh", response_model=dict)
+async def refresh_comic_metadata(comic_id: str) -> dict:
     metadata = load_comic_metadata(comic_id)
     if not metadata:
         raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
@@ -188,7 +188,7 @@ async def refresh_comic_metadata(comic_id: str) -> Comic:
             break
     save_library(library)
 
-    return Comic(**metadata)
+    return _build_detail_response(metadata)
 
 
 @router.post("/{comic_id}/status", response_model=Comic)
@@ -263,12 +263,18 @@ def _build_detail_response(metadata: dict) -> dict:
     detail["cover_local"] = detail.get("cover_local", "")
     detail["reading_progress"] = detail.get("reading_progress") or detail.get("progress")
 
+    chapters = detail.get("chapters", [])
+    detail["chapter_count"] = len(chapters)
+    detail["downloaded_count"] = sum(
+        1 for c in chapters if c.get("status") == "downloaded"
+    )
+
     completed_chapters = set(detail.get("completed_chapters") or [])
     reading_progress = detail.get("reading_progress") or {}
     current_chapter_id = reading_progress.get("chapter_id") if isinstance(reading_progress, dict) else ""
     detail["chapters"] = [
         _enrich_detail_chapter(chapter, completed_chapters, current_chapter_id)
-        for chapter in detail.get("chapters", [])
+        for chapter in chapters
     ]
     return detail
 

@@ -61,6 +61,8 @@
     btnRefresh.addEventListener("click", onRefresh);
     btnDelete.addEventListener("click", onDelete);
 
+    window.addEventListener("beforeunload", stopPolling);
+
     loadDetail();
   }
 
@@ -343,7 +345,8 @@
       if (readBtn) {
         e.preventDefault();
         e.stopPropagation();
-        window.location.href = "/reader?comic=" + encodeURIComponent(comicId);
+        var chId = readBtn.dataset.chapterId;
+        window.location.href = "/reader?comic=" + encodeURIComponent(comicId) + "&chapter_id=" + encodeURIComponent(chId);
         return;
       }
 
@@ -351,7 +354,7 @@
       if (row) {
         var chId = row.dataset.chapterId;
         if (chId) {
-          window.location.href = "/reader?comic=" + encodeURIComponent(comicId);
+          window.location.href = "/reader?comic=" + encodeURIComponent(comicId) + "&chapter_id=" + encodeURIComponent(chId);
         }
       }
     });
@@ -406,7 +409,13 @@
 
   function onRead() {
     if (comicId) {
-      window.location.href = "/reader?comic=" + encodeURIComponent(comicId);
+      var progress = comicData && (comicData.reading_progress || comicData.progress);
+      var chId = progress && progress.chapter_id;
+      var url = "/reader?comic=" + encodeURIComponent(comicId);
+      if (chId) {
+        url += "&chapter_id=" + encodeURIComponent(chId);
+      }
+      window.location.href = url;
     }
   }
 
@@ -437,6 +446,7 @@
     }
 
     var count = 0;
+    var successCount = 0;
     var total = failedChapters.length;
 
     failedChapters.forEach(function (ch) {
@@ -446,15 +456,26 @@
       )
         .then(function () {
           count++;
+          successCount++;
           if (count === total) {
-            showToast("Retrying " + total + " failed chapter(s).", "success");
+            if (successCount === total) {
+              showToast("Retrying " + total + " failed chapter(s).", "success");
+            } else {
+              showToast("Retrying " + successCount + "/" + total + " chapters. Some failed.", "warning");
+            }
             startPolling();
           }
         })
         .catch(function (err) {
           count++;
           if (count === total) {
-            showToast("Retrying " + total + " failed chapter(s).", "success");
+            if (successCount === total) {
+              showToast("Retrying " + total + " failed chapter(s).", "success");
+            } else if (successCount > 0) {
+              showToast("Retrying " + successCount + "/" + total + " chapters. Some failed.", "warning");
+            } else {
+              showToast("All retries failed. Please try again later.", "error");
+            }
             startPolling();
           }
         });
@@ -512,6 +533,7 @@
     API.get("/downloads/" + encodeURIComponent(comicId) + "/status")
       .then(function (status) {
         updateChapterStatuses(status);
+        renderChapters();
 
         if (
           status.status === "complete" ||
