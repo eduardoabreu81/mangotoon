@@ -71,5 +71,9 @@ const API = (function () {
     return post("/library/import/confirm", data);
   }
 
-  return { get, post, del, getSources, detectSource, previewImport, confirmImport, ApiError, BASE };
+  function refreshComic(comicId) {
+    return post("/library/" + encodeURIComponent(comicId) + "/refresh");
+  }
+
+  return { get, post, del, getSources, detectSource, previewImport, confirmImport, refreshComic, ApiError, BASE };
 })();

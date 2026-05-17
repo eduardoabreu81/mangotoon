@@ -62,6 +62,10 @@
 
   var _pollTimers = {};
 
+  var toastEl = document.getElementById("toast");
+  var toastMsg = document.getElementById("toast-msg");
+  var _toastTimer = null;
+
   document.addEventListener("DOMContentLoaded", function () {
     init();
   });
@@ -864,6 +868,9 @@
       case "download":
         triggerDownload(contextComicId);
         break;
+      case "refresh":
+        refreshMetadata(contextComicId);
+        break;
       case "delete":
         deleteComic(contextComicId, null);
         break;
@@ -892,6 +899,36 @@
       .catch(function (err) {
         console.error("Failed to update status:", err);
       });
+  }
+
+  function refreshMetadata(comicId) {
+    showToast("Refreshing metadata...", "info");
+    API.refreshComic(comicId)
+      .then(function () {
+        showToast("Metadata refreshed successfully.", "success");
+        loadLibrary();
+      })
+      .catch(function (err) {
+        var msg = "Failed to refresh metadata.";
+        if (err.detail) {
+          if (typeof err.detail === "string") msg = err.detail;
+          else if (err.detail.error && err.detail.error.message) msg = err.detail.error.message;
+        }
+        showToast(msg, "error");
+      });
+  }
+
+  function showToast(message, type) {
+    if (!toastEl || !toastMsg) return;
+    if (_toastTimer) clearTimeout(_toastTimer);
+
+    toastMsg.textContent = message;
+    toastEl.className = "toast" + (type === "error" ? " toast-error" : "");
+    toastEl.hidden = false;
+
+    _toastTimer = setTimeout(function () {
+      toastEl.hidden = true;
+    }, 3500);
   }
 
   gridEl &&
