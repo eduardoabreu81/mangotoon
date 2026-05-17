@@ -1,0 +1,167 @@
+# MangoToon — Project Log
+
+> Internal change log for AI agents.
+> **Never commit this file.**
+
+---
+
+## Project Identity
+
+- **Name:** MangoToon
+- **Purpose:** Local-first manga reader and library manager
+- **Version:** v0.1.0
+- **Stack:** FastAPI + Pydantic (backend), Vanilla JS (frontend), JSON storage
+- **Status:** Phases 0-3 complete, Phase 4 in progress
+
+---
+
+## Backlog / Roadmap
+
+| Item | Status | Target Phase |
+|---|---|---|
+| Cleanup and baseline | ✅ Complete | Phase 0 |
+| Local storage and library API | ✅ Complete | Phase 1 |
+| Frontend library UI | ✅ Complete | Phase 2 |
+| MangaDex metadata adapter | ✅ Complete | Phase 3 |
+| Download manager | 🔄 In Progress | Phase 4 |
+| Reader | ⏳ Planned | Phase 5 |
+| Settings page | ⏳ Planned | Phase 6 |
+| Polish and release readiness | ⏳ Planned | Phase 7 |
+| Documentation (AGENTS.md, PROJECT_LOG) | ✅ Complete | Ongoing |
+
+---
+
+## Log Entries
+
+### 2026-05-16 — Phase 0-2 Completion + Multi-Agent Setup
+
+**O que mudou (pt-BR):**
+
+Fizemos o rebuild completo do projeto ComicLib (antigo) para MangoToon. Implementamos as Phases 0, 1 e 2 com arquitetura multi-agent.
+
+**Features:**
+- Backend FastAPI com endpoints de health, library e settings
+- Storage JSON com atomic writes (temp + rename)
+- Models Pydantic (Comic, Chapter, ReadingProgress, Settings)
+- Frontend vanilla JS com grid de comics, search, sort, delete
+- Modal Add Manga (shell para Phase 3)
+- Dark theme com accent purple (#9b59b6)
+- 11 testes passando
+
+**Fixes:**
+- Rename completo MangaToon → MangoToon em todos os arquivos
+- Correção do data format (array → object com version)
+- Correção de imports nos testes
+
+**Chore:**
+- Setup multi-agent com tmux (Claude manager, Codex backend, OpenCode frontend, Kimi review)
+- Criação de AGENTS.md e PROJECT_LOG.md
+- Commit com 44 arquivos alterados
+
+**Arquivos alterados:**
+- `app/__init__.py` — versão v0.1.0
+- `app/main.py` — FastAPI com routers
+- `app/core/config.py` — APP_NAME = "MangoToon"
+- `app/models/comic.py` — Pydantic models
+- `app/services/storage.py` — JSON atomic storage
+- `app/routers/library.py` — GET/DELETE /api/library
+- `app/routers/settings.py` — GET/POST /api/settings
+- `frontend/index.html` — Library page com modal
+- `frontend/css/style.css` — Dark design system
+- `frontend/js/api.js` — API client
+- `frontend/js/app.js` — Library UI
+- `scripts/init_data.py` — Data initialization
+- `tests/test_api.py` — Health tests
+- `tests/test_init_data.py` — Data init tests
+- `tests/test_library.py` — Library/settings tests
+- `pyproject.toml` — Package config
+- `.gitignore` — Python cache, data, etc.
+- `.env.example` — Environment template
+- `README.md` — Public docs
+- `AGENTS.md` — Agent guide
+- `TELEGRAM_HANDOFF.md` — Session continuity
+
+**Decisões:**
+- Usar tmux sessions para multi-agent (delegate_task falhou com 404)
+- Claude como manager (orquestra), Codex/OpenCode como devs
+- Hermes como devil's advocate + documentação
+- Não usar SQLite ainda (JSON files para MVP)
+- Vanilla JS only (sem frameworks)
+
+**Pontos sensíveis:**
+- Codex tem problema com sandbox (uv cache read-only) — usar python3 diretamente
+- Claude CLI precisa do Bun para hooks
+- OpenCode faz bom trabalho no frontend mas precisa de review
+- Sempre validar APP_NAME = "MangoToon" em novos arquivos
+
+**Próximos passos / Next steps:**
+1. Phase 4: Download Manager — async queue, chapter/page download
+2. Phase 5: Reader — image serving, navigation, progress tracking
+3. Phase 6: Settings page — full UI for configuration
+4. Phase 7: Polish — error handling, mobile, performance
+
+---
+
+## Phase 3 Log — 2026-05-17
+
+**MangaDex Metadata Adapter + Add Manga Wiring**
+
+**Backend (dev_codex — gpt-5.5):**
+- Created `app/sources/base.py` — SourceAdapter protocol + error types
+- Created `app/sources/mangadex.py` — MangaDex adapter using httpx
+- Created `app/services/source_registry.py` — Source registry
+- Implemented `POST /api/library/add` with duplicate prevention
+- Added computed `chapter_count` and `downloaded_count` fields
+- Tests: 23 passed in 2.09s
+
+**Frontend (dev_opencode — DeepSeek V4 Pro):**
+- Wired Add Manga modal to `POST /api/library/add`
+- Added loading state, success, duplicate, error handling
+- Added inline error message UI
+- Preserved existing search, sort, delete functionality
+
+**Commit:** `30e29b1` — 11 files changed, +684/-4 lines
+
+---
+
+## Sensitive Points
+
+- **Never commit** `docs/`, `AGENTS.md`, `AGENTS.local.md`, or `.env`
+- **Always check** app name is "MangoToon" in new files
+- **Atomic writes** are required for all JSON file operations
+- **Test isolation** — use tmp_path monkeypatch for storage tests
+- **No hardcoded secrets** — use .env for API keys
+
+---
+
+## Agent Notes
+
+### Multi-Agent Communication
+- Manager reads specs and delegates via `tmux send-keys`
+- Devs implement and report files changed
+- Devil's advocate validates against SPEC_REBUILT.md
+- All tests must pass before phase approval
+
+### Tmux Sessions
+```bash
+tmux list-sessions
+# manager  — Claude (orchestration)
+# dev_codex — Codex (backend)
+# dev_opencode — OpenCode (frontend)
+# dev_kimi — Kimi (review)
+```
+
+### Useful Commands
+```bash
+# Run tests
+uv run pytest tests/ -v
+
+# Start server
+uv run uvicorn app.main:app --reload
+
+# Init data
+python3 scripts/init_data.py
+
+# Check tmux
+tmux capture-pane -t <session> -p | tail -30
+```
