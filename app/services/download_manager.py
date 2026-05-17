@@ -196,7 +196,12 @@ class DownloadManager:
             self._jobs[comic_id] = DownloadJob(comic_id=comic_id, total_chapters=1)
         else:
             self._jobs[comic_id].total_chapters += 1
-            self._jobs[comic_id].status = DownloadStatus.queued.value
+            # Only change status if job is not actively downloading or paused
+            if self._jobs[comic_id].status not in (
+                DownloadStatus.downloading.value,
+                DownloadStatus.paused.value,
+            ):
+                self._jobs[comic_id].status = DownloadStatus.queued.value
 
         self._set_chapters_status(comic_id, [chapter_id], "queued")
         await self._queue.put((comic_id, chapter))
@@ -447,8 +452,13 @@ class DownloadManager:
             save_comic_metadata(comic_id, meta)
 
     def _remove_queued_items(self, comic_id: str) -> None:
-        """Remove all queued items for a comic while keeping the same queue object."""
-        kept: list[tuple[str, dict[str, Any]]] = []
+        """Remove all queued items for a comic without corrupting task_done accounting.
+
+        We create a new queue and transfer only items for other comics.
+        This avoids the task_done mismatch that occurs when removing items
+        from an asyncio.Queue without a corresponding get().
+        """
+        new_queue: asyncio.Queue[tuple[str, dict[str, Any]]] = asyncio.Queue()
         while True:
             try:
                 item = self._queue.get_nowait()
@@ -456,10 +466,11 @@ class DownloadManager:
                 break
             queued_comic_id, _chapter = item
             if queued_comic_id != comic_id:
-                kept.append(item)
-            self._queue.task_done()
-        for item in kept:
-            self._queue.put_nowait(item)
+                new_queue.put_nowait(item)
+            # Do NOT call task_done() for removed items — the worker that
+            # called get() will call task_done() after processing.
+            # For items we keep, the original worker will still process them.
+        self._queue = new_queue
 
     def _set_incomplete_chapters_status(self, comic_id: str, status: str) -> None:
         meta = load_comic_metadata(comic_id)
