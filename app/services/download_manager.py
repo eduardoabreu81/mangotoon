@@ -22,12 +22,14 @@ USER_AGENT = "MangoToon/0.1 (local manga reader)"
 MAX_RETRIES = 3
 ACCEPTED_IMAGE_TYPES = {
     "image/jpeg",
+    "image/jpg",
     "image/png",
     "image/webp",
     "image/gif",
 }
 MAGIC_BYTE_TYPES = {
     "image/jpeg": "JPEG",
+    "image/jpg": "JPEG",
     "image/png": "PNG",
     "image/webp": "WEBP",
     "image/gif": "GIF",
@@ -382,6 +384,9 @@ class DownloadManager:
                         return response.content
             except Exception as exc:
                 last_exc = exc
+                if isinstance(exc, ValueError) and attempt < MAX_RETRIES - 1:
+                    # Don't retry on validation errors (wrong content-type, bad magic bytes)
+                    break
                 if attempt < MAX_RETRIES - 1:
                     await asyncio.sleep(2**attempt)
         raise last_exc or RuntimeError("Download failed.")
