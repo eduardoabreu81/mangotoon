@@ -120,6 +120,67 @@ async def remove_comic(comic_id: str) -> dict[str, str]:
     return {"message": f"Comic '{comic_id}' deleted"}
 
 
+@router.post("/{comic_id}/refresh", response_model=Comic)
+async def refresh_comic_metadata(comic_id: str) -> Comic:
+    metadata = load_comic_metadata(comic_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
+
+    source_url = metadata.get("source_url")
+    if not source_url:
+        raise HTTPException(status_code=400, detail="Comic has no source URL to refresh from.")
+
+    try:
+        adapter = source_registry.get_adapter(source_url)
+    except UnsupportedSource as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        fresh = await adapter.fetch_comic(source_url)
+    except SourceNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except SourceApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    # Merge: preserve local state, update metadata
+    metadata["title"] = fresh.title
+    metadata["description"] = fresh.description
+    metadata["cover_url"] = fresh.cover_url
+    metadata["chapter_count"] = fresh.chapter_count
+    metadata["updated_at"] = fresh.updated_at
+
+    # Merge chapters: preserve downloaded status and local_pages
+    existing_chapters = {c.get("chapter_id"): c for c in metadata.get("chapters", [])}
+    merged = []
+    for chapter in fresh.chapters:
+        ch_id = chapter.chapter_id
+        if ch_id in existing_chapters:
+            old = existing_chapters[ch_id]
+            # Preserve local state
+            chapter.local_pages = old.get("local_pages", [])
+            chapter.status = old.get("status", "not_downloaded")
+            chapter.downloaded_pages = old.get("downloaded_pages", 0)
+            # Note: reading_progress is not a Chapter field, skip it
+        merged.append(chapter.model_dump(mode="json"))
+    metadata["chapters"] = merged
+
+    save_comic_metadata(comic_id, metadata)
+
+    # Update library entry
+    library = load_library()
+    for comic in library.get("comics", []):
+        if comic.get("comic_id") == comic_id:
+            comic["title"] = fresh.title
+            comic["description"] = fresh.description
+            comic["cover_url"] = fresh.cover_url
+            comic["chapter_count"] = fresh.chapter_count
+            comic["updated_at"] = fresh.updated_at
+            break
+    save_library(library)
+
+    return Comic(**metadata)
+
+
 @router.post("/{comic_id}/status", response_model=Comic)
 async def update_comic_status(comic_id: str, payload: UpdateComicStatusRequest) -> Comic:
     metadata = load_comic_metadata(comic_id)

@@ -33,7 +33,7 @@ if %errorlevel% neq 0 (
 )
 
 echo Installing dependencies...
-%PYTHON_CMD% -m uv sync --extra dev
+%PYTHON_CMD% -m uv sync --no-dev
 if %errorlevel% neq 0 (
     echo Dependency installation failed.
     exit /b 1

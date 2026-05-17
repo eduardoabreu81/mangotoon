@@ -10,7 +10,7 @@ WORKDIR /app
 
 RUN python -m pip install --no-cache-dir uv
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md uv.lock ./
 RUN uv sync --no-dev --no-install-project
 
 COPY app ./app
