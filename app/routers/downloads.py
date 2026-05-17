@@ -36,6 +36,7 @@ async def get_download_status(comic_id: str) -> dict:
     return {
         "comic_id": comic_id,
         "status": derived_status,
+        "state": derived_status,
         "total_chapters": total,
         "downloaded_chapters": downloaded,
         "error_chapters": errors,
@@ -46,3 +47,50 @@ async def get_download_status(comic_id: str) -> dict:
 @router.get("")
 async def list_active_downloads() -> list[dict]:
     return download_manager.list_active()
+
+
+@router.get("/status")
+async def list_download_statuses() -> list[dict]:
+    return download_manager.list_active()
+
+
+@router.post("/{comic_id}/pause")
+async def pause_download(comic_id: str) -> dict:
+    if not download_manager.pause_comic(comic_id):
+        raise HTTPException(status_code=404, detail=f"Active download for comic '{comic_id}' not found.")
+    return {"message": "Download paused.", "comic_id": comic_id, "status": "paused", "state": "paused"}
+
+
+@router.post("/{comic_id}/resume")
+async def resume_download(comic_id: str) -> dict:
+    if not download_manager.resume_comic(comic_id):
+        raise HTTPException(status_code=404, detail=f"Paused download for comic '{comic_id}' not found.")
+    return {"message": "Download resumed.", "comic_id": comic_id, "status": "queued", "state": "queued"}
+
+
+@router.post("/{comic_id}/cancel")
+async def cancel_download(comic_id: str) -> dict:
+    if not download_manager.cancel_comic(comic_id):
+        raise HTTPException(status_code=404, detail=f"Download for comic '{comic_id}' not found.")
+    return {
+        "message": "Download cancelled.",
+        "comic_id": comic_id,
+        "status": "cancelled",
+        "state": "cancelled",
+    }
+
+
+@router.post("/{comic_id}/chapters/{chapter_id}/retry")
+async def retry_chapter_download(comic_id: str, chapter_id: str) -> dict:
+    if not await download_manager.retry_chapter(comic_id, chapter_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Failed chapter '{chapter_id}' for comic '{comic_id}' not found.",
+        )
+    return {
+        "message": "Chapter retry queued.",
+        "comic_id": comic_id,
+        "chapter_id": chapter_id,
+        "status": "queued",
+        "state": "queued",
+    }

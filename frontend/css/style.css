@@ -814,6 +814,61 @@ h1 {
   background: var(--accent-hover);
 }
 
+/* Download control buttons on cards */
+
+.card-controls {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.card-controls[hidden] {
+  display: none;
+}
+
+.card-ctrl-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.4;
+}
+
+.card-ctrl-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.card-pause:hover {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.card-resume:hover {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.card-cancel:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.card-retry {
+  color: var(--warning);
+}
+
+.card-retry:hover {
+  border-color: var(--warning);
+  color: var(--warning);
+  background: rgba(243, 156, 18, 0.1);
+}
+
 /* === Settings Form === */
 
 .settings-form {

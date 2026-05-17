@@ -358,6 +358,16 @@
           escapeAttr(comic.comic_id) +
           '">&#x2B07;</button>'
         : "") +
+      '<div class="card-controls" hidden>' +
+        '<button class="card-ctrl-btn card-pause" title="Pause download" data-pause="' +
+          escapeAttr(comic.comic_id) + '">❚❚</button>' +
+        '<button class="card-ctrl-btn card-resume" title="Resume download" data-resume="' +
+          escapeAttr(comic.comic_id) + '">▶</button>' +
+        '<button class="card-ctrl-btn card-cancel" title="Cancel download" data-cancel="' +
+          escapeAttr(comic.comic_id) + '">✕</button>' +
+        '<button class="card-ctrl-btn card-retry" title="Retry download" data-retry="' +
+          escapeAttr(comic.comic_id) + '">↻</button>' +
+      '</div>' +
       '<button class="card-delete" title="Delete ' +
       escapeAttr(comic.title) +
       '" aria-label="Delete ' +
@@ -534,6 +544,64 @@
     if (dlBtn && status.status === "complete") {
       dlBtn.hidden = true;
     }
+
+    updateCardControls(card, comicId, status);
+  }
+
+  function updateCardControls(card, comicId, status) {
+    var controls = card.querySelector(".card-controls");
+    if (!controls) return;
+
+    var pauseBtn = controls.querySelector("[data-pause]");
+    var resumeBtn = controls.querySelector("[data-resume]");
+    var cancelBtn = controls.querySelector("[data-cancel]");
+    var retryBtn = controls.querySelector("[data-retry]");
+
+    var s = status.status || "";
+
+    var showPause = s === "downloading";
+    var showResume = s === "paused";
+    var showCancel = s === "downloading" || s === "queued" || s === "paused";
+    var showRetry = s === "error";
+    var showAny = showPause || showResume || showCancel || showRetry;
+
+    controls.hidden = !showAny;
+    if (pauseBtn) pauseBtn.hidden = !showPause;
+    if (resumeBtn) resumeBtn.hidden = !showResume;
+    if (cancelBtn) cancelBtn.hidden = !showCancel;
+    if (retryBtn) retryBtn.hidden = !showRetry;
+  }
+
+  function pauseDownload(comicId) {
+    API.post("/downloads/" + encodeURIComponent(comicId) + "/pause", {})
+      .catch(function (err) {
+        console.error("Pause failed:", err);
+      });
+  }
+
+  function resumeDownload(comicId) {
+    API.post("/downloads/" + encodeURIComponent(comicId) + "/resume", {})
+      .then(function () {
+        startPolling(comicId);
+      })
+      .catch(function (err) {
+        console.error("Resume failed:", err);
+      });
+  }
+
+  function cancelDownload(comicId) {
+    API.post("/downloads/" + encodeURIComponent(comicId) + "/cancel", {})
+      .then(function () {
+        stopPolling(comicId);
+        loadLibrary();
+      })
+      .catch(function (err) {
+        console.error("Cancel failed:", err);
+      });
+  }
+
+  function retryDownload(comicId) {
+    triggerDownload(comicId);
   }
 
   // Context menu
@@ -625,6 +693,38 @@
         if (comicId) {
           deleteComic(comicId, btn.closest(".comic-card"));
         }
+        return;
+      }
+
+      var pauseBtn = e.target.closest("[data-pause]");
+      if (pauseBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        pauseDownload(pauseBtn.dataset.pause);
+        return;
+      }
+
+      var resumeBtn = e.target.closest("[data-resume]");
+      if (resumeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        resumeDownload(resumeBtn.dataset.resume);
+        return;
+      }
+
+      var cancelBtn = e.target.closest("[data-cancel]");
+      if (cancelBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        cancelDownload(cancelBtn.dataset.cancel);
+        return;
+      }
+
+      var retryBtn = e.target.closest("[data-retry]");
+      if (retryBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        retryDownload(retryBtn.dataset.retry);
         return;
       }
 
