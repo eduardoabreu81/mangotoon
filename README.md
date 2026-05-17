@@ -40,6 +40,14 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - **POST /api/library/import/confirm** — save with optional title override and auto-download toggle
 - **Legacy /api/library/add preserved** — backward compatible
 
+### Phase 18 — Manga Detail Page
+
+- **Comic detail page** — `/comic?comic_id=...` with cover, metadata, chapter list
+- **Backend endpoint** — `GET /api/library/{comic_id}/detail` returns enriched chapter data
+- **Actions** — Read, Download Missing, Retry Failed, Refresh Metadata, Delete
+- **Chapter navigation** — click chapter opens reader at that chapter
+- **Progress tracking** — resume from last read chapter
+
 ### Phase 17 — Download Integrity
 
 - **Content-type validation** — rejects HTML, JSON, or other non-image responses
@@ -127,6 +135,14 @@ No cloud sync. No accounts. No tracking. No React. No database.
 - Typed request models (ImportPreviewRequest, ImportConfirmRequest)
 - ImportConfirmResponse model
 - Legacy /api/library/add preserved as wrapper
+
+### Phase 18 — Manga Detail Page
+- Comic detail page at /comic?comic_id=...
+- Cover image, title, source, description, status
+- Chapter list with status, progress, actions
+- Read button resumes from last read chapter
+- Download Missing, Retry Failed, Refresh, Delete actions
+- Backend GET /api/library/{comic_id}/detail with enriched chapters
 
 ### Phase 17 — Download Integrity
 - Content-type validation (reject HTML/JSON)
@@ -249,7 +265,10 @@ No cloud sync. No accounts. No tracking. No React. No database.
 | 15 | ✅ | Refresh metadata — re-fetch without losing downloads |
 | 16 | ✅ | Download queue reliability — pause/resume/cancel fixes |
 | 17 | ✅ | **Download integrity** — content-type validation, magic bytes |
-| 18 | 📋 | Backup and export |
+| 18 | ✅ | **Manga detail page** — cover, chapters, actions, progress |
+| 19 | 📋 | Reader chapter list UX |
+| 20 | 📋 | History and progress hardening |
+| 21 | 📋 | Settings applied to runtime |
 
 ---
 
