@@ -712,6 +712,86 @@ h1 {
   transition: width 0.2s;
 }
 
+.reader-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.reader-ctrl-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  min-width: 28px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.reader-ctrl-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+#btn-fullscreen {
+  font-size: 0.9rem;
+}
+
+/* Fit mode image classes */
+
+.reader-img.fit-width {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.reader-img.fit-height {
+  height: calc(100vh - 7rem);
+  max-width: none;
+  max-height: none;
+}
+
+.reader-img.fit-original {
+  max-width: none;
+  max-height: none;
+}
+
+/* Chapter Complete Overlay */
+
+.chapter-complete-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+}
+
+.chapter-complete-overlay[hidden] {
+  display: none;
+}
+
+.chapter-complete-box {
+  text-align: center;
+  padding: 2rem 3rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+}
+
+.chapter-complete-text {
+  color: var(--accent);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+
 @media (max-width: 640px) {
   .page-header,
   .toolbar {
@@ -736,5 +816,9 @@ h1 {
 
   .reader-progress-wrap {
     width: 80px;
+  }
+
+  .reader-controls {
+    display: none;
   }
 }
