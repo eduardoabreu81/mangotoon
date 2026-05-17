@@ -32,6 +32,10 @@ class DownloadStatus(str, Enum):
     error = "error"
 
 
+class DownloadCancelled(Exception):
+    """Raised when a download job is cancelled while work is in progress."""
+
+
 class DownloadJob:
     def __init__(self, comic_id: str, total_chapters: int):
         self.comic_id = comic_id
@@ -40,6 +44,9 @@ class DownloadJob:
         self.downloaded_chapters = 0
         self.error_chapters = 0
         self.current_chapter_id: str | None = None
+        self.resume_event = asyncio.Event()
+        self.resume_event.set()
+        self.cancel_event = asyncio.Event()
 
     def to_dict(self) -> dict:
         return {
@@ -140,6 +147,7 @@ class DownloadManager:
         if not job or job.status not in (DownloadStatus.queued.value, DownloadStatus.downloading.value):
             return False
         job.status = DownloadStatus.paused.value
+        job.resume_event.clear()
         self._update_comic_status(comic_id, DownloadStatus.paused.value)
         return True
 
@@ -148,6 +156,7 @@ class DownloadManager:
         if not job or job.status != DownloadStatus.paused.value:
             return False
         job.status = DownloadStatus.queued.value
+        job.resume_event.set()
         self._update_comic_status(comic_id, DownloadStatus.queued.value)
         return True
 
@@ -160,8 +169,10 @@ class DownloadManager:
         if job:
             job.status = DownloadStatus.cancelled.value
             job.current_chapter_id = None
+            job.cancel_event.set()
+            job.resume_event.set()
         self._remove_queued_items(comic_id)
-        self._reset_incomplete_chapters(comic_id)
+        self._set_incomplete_chapters_status(comic_id, DownloadStatus.cancelled.value)
         self._update_comic_status(comic_id, DownloadStatus.cancelled.value)
         return True
 
@@ -198,18 +209,33 @@ class DownloadManager:
                 comic_id, chapter = await self._queue.get()
                 try:
                     job = self._jobs.get(comic_id)
-                    if job and job.status == DownloadStatus.cancelled.value:
-                        continue
-                    if job and job.status == DownloadStatus.paused.value:
-                        await self._queue.put((comic_id, chapter))
-                        await asyncio.sleep(0.25)
+                    if job and self._is_cancelled(job):
+                        self._set_chapters_status(
+                            comic_id,
+                            [chapter["chapter_id"]],
+                            DownloadStatus.cancelled.value,
+                        )
                         continue
                     if job:
+                        await self._wait_if_paused(job)
+                        if self._is_cancelled(job):
+                            self._set_chapters_status(
+                                comic_id,
+                                [chapter["chapter_id"]],
+                                DownloadStatus.cancelled.value,
+                            )
+                            continue
                         job.status = DownloadStatus.downloading.value
                         job.current_chapter_id = chapter.get("chapter_id")
-                    await self._download_chapter(comic_id, chapter)
-                    if job:
+                    chapter_status = await self._download_chapter(comic_id, chapter, job)
+                    if job and chapter_status == "downloaded":
                         job.downloaded_chapters += 1
+                    elif job and chapter_status in ("error", "partial"):
+                        job.error_chapters += 1
+                except DownloadCancelled:
+                    if job := self._jobs.get(comic_id):
+                        job.status = DownloadStatus.cancelled.value
+                        job.current_chapter_id = None
                 except Exception:
                     if job := self._jobs.get(comic_id):
                         job.error_chapters += 1
@@ -238,7 +264,12 @@ class DownloadManager:
             job.current_chapter_id = None
             self._update_comic_status(comic_id, job.status)
 
-    async def _download_chapter(self, comic_id: str, chapter: dict[str, Any]) -> None:
+    async def _download_chapter(
+        self,
+        comic_id: str,
+        chapter: dict[str, Any],
+        job: DownloadJob | None = None,
+    ) -> str:
         chapter_id = chapter["chapter_id"]
         self._set_chapters_status(comic_id, [chapter_id], "downloading")
 
@@ -261,6 +292,7 @@ class DownloadManager:
         downloaded = 0
         failed = False
         for idx, url in enumerate(page_urls, start=1):
+            await self._raise_if_paused_or_cancelled(job, comic_id, chapter_id)
             url_path = urlparse(url).path
             ext = Path(url_path).suffix or ".jpg"
             dest = chapter_dir / f"{idx:03d}{ext}"
@@ -278,9 +310,30 @@ class DownloadManager:
             except Exception:
                 failed = True
 
-        self._persist_chapter_downloaded(
+        await self._raise_if_paused_or_cancelled(job, comic_id, chapter_id)
+        return self._persist_chapter_downloaded(
             comic_id, chapter_id, len(page_urls), downloaded, local_pages, failed
         )
+
+    def _is_cancelled(self, job: DownloadJob) -> bool:
+        return job.cancel_event.is_set() or job.status == DownloadStatus.cancelled.value
+
+    async def _wait_if_paused(self, job: DownloadJob) -> None:
+        while job.status == DownloadStatus.paused.value and not self._is_cancelled(job):
+            await job.resume_event.wait()
+
+    async def _raise_if_paused_or_cancelled(
+        self,
+        job: DownloadJob | None,
+        comic_id: str,
+        chapter_id: str,
+    ) -> None:
+        if job is None:
+            return
+        await self._wait_if_paused(job)
+        if self._is_cancelled(job):
+            self._set_chapters_status(comic_id, [chapter_id], DownloadStatus.cancelled.value)
+            raise DownloadCancelled()
 
     async def _fetch_with_retry(self, url: str) -> bytes:
         host = urlparse(url).hostname or url
@@ -353,21 +406,24 @@ class DownloadManager:
         downloaded_pages: int,
         local_pages: list[str],
         failed: bool,
-    ) -> None:
+    ) -> str:
         meta = load_comic_metadata(comic_id)
         if not meta:
-            return
+            return "error"
+        status = "error"
         for chapter in meta.get("chapters", []):
             if chapter.get("chapter_id") == chapter_id:
                 if failed:
-                    chapter["status"] = "error" if downloaded_pages == 0 else "partial"
+                    status = "error" if downloaded_pages == 0 else "partial"
                 else:
-                    chapter["status"] = "downloaded" if downloaded_pages >= total_pages else "error"
+                    status = "downloaded" if downloaded_pages >= total_pages else "error"
+                chapter["status"] = status
                 chapter["pages"] = total_pages
                 chapter["downloaded_pages"] = downloaded_pages
                 chapter["local_pages"] = local_pages
         save_comic_metadata(comic_id, meta)
         self._update_library_counts(comic_id, meta)
+        return status
 
     def _update_library_counts(self, comic_id: str, meta: dict[str, Any]) -> None:
         library = load_library()
@@ -391,13 +447,8 @@ class DownloadManager:
             save_comic_metadata(comic_id, meta)
 
     def _remove_queued_items(self, comic_id: str) -> None:
-        """Remove all queued items for a comic without corrupting task_done accounting.
-
-        We create a new queue and transfer only items for other comics.
-        This avoids the task_done mismatch that occurs when removing items
-        from an asyncio.Queue without a corresponding get().
-        """
-        new_queue: asyncio.Queue[tuple[str, dict[str, Any]]] = asyncio.Queue()
+        """Remove all queued items for a comic while keeping the same queue object."""
+        kept: list[tuple[str, dict[str, Any]]] = []
         while True:
             try:
                 item = self._queue.get_nowait()
@@ -405,19 +456,18 @@ class DownloadManager:
                 break
             queued_comic_id, _chapter = item
             if queued_comic_id != comic_id:
-                new_queue.put_nowait(item)
-            # Do NOT call task_done() for removed items — the worker that
-            # called get() will call task_done() after processing.
-            # For items we keep, the original worker will still process them.
-        self._queue = new_queue
+                kept.append(item)
+            self._queue.task_done()
+        for item in kept:
+            self._queue.put_nowait(item)
 
-    def _reset_incomplete_chapters(self, comic_id: str) -> None:
+    def _set_incomplete_chapters_status(self, comic_id: str, status: str) -> None:
         meta = load_comic_metadata(comic_id)
         if not meta:
             return
         for chapter in meta.get("chapters", []):
             if chapter.get("status") in ("queued", "downloading"):
-                chapter["status"] = "not_downloaded"
+                chapter["status"] = status
         save_comic_metadata(comic_id, meta)
 
 

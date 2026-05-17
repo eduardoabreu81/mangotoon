@@ -12,8 +12,9 @@ class ChapterStatus(str, Enum):
     queued = "queued"
     downloading = "downloading"
     downloaded = "downloaded"
-    error = "error"
     partial = "partial"
+    cancelled = "cancelled"
+    error = "error"
 
 
 class Chapter(BaseModel):
@@ -54,12 +55,15 @@ class SourceCapabilities(BaseModel):
 class ComicStatus(str, Enum):
     pending = "pending"
     metadata_fetching = "metadata_fetching"
+    queued = "queued"
     downloading = "downloading"
+    paused = "paused"
     downloaded = "downloaded"
     reading = "reading"
     completed = "completed"
     complete = "complete"
     partial = "partial"
+    cancelled = "cancelled"
     error = "error"
 
 

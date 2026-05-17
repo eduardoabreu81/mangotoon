@@ -8,7 +8,9 @@ from app.main import app
 from app.routers import library as library_router
 from app.services import download_manager as download_manager_module
 from app.services import storage
-from app.services.download_manager import DownloadManager
+from app.services.download_manager import DownloadCancelled, DownloadJob, DownloadManager
+from app.services.source_registry import SourceRegistry
+from app.sources.fake import FakeSourceAdapter
 
 
 COMIC_ID = "mangadex-test"
@@ -87,6 +89,143 @@ async def test_enqueue_comic_creates_job(isolated_storage, monkeypatch):
     assert status is not None
     assert status["status"] in {"queued", "downloading"}
     assert status["total_chapters"] == 2
+
+
+@pytest.mark.asyncio
+async def test_pause_while_queued(isolated_storage, monkeypatch):
+    manager = DownloadManager()
+
+    async def fake_download_cover(comic_id, metadata):
+        return None
+
+    monkeypatch.setattr(manager, "_download_cover", fake_download_cover)
+
+    await manager.enqueue_comic(COMIC_ID)
+
+    assert manager.pause_comic(COMIC_ID) is True
+    status = manager.get_status(COMIC_ID)
+    assert status["state"] == "paused"
+    assert manager._jobs[COMIC_ID].resume_event.is_set() is False
+    assert manager._queue.qsize() == 2
+
+
+@pytest.mark.asyncio
+async def test_pause_while_downloading(isolated_storage, monkeypatch):
+    pages = ["https://fake.local/001.jpg", "https://fake.local/002.jpg"]
+    comic = sample_comic()
+    comic["source"] = "Fake"
+    comic["source_url"] = "fake://phase16"
+    storage.save_library({"version": 1, "comics": [comic]})
+    storage.save_comic_metadata(COMIC_ID, comic)
+    monkeypatch.setattr(
+        download_manager_module,
+        "source_registry",
+        SourceRegistry([FakeSourceAdapter(pages=pages)]),
+    )
+
+    manager = DownloadManager()
+    job = DownloadJob(COMIC_ID, total_chapters=1)
+    job.status = "downloading"
+    manager._jobs[COMIC_ID] = job
+    first_page_downloaded = asyncio.Event()
+    calls: list[str] = []
+
+    async def fake_fetch(url: str) -> bytes:
+        calls.append(url)
+        if len(calls) == 1:
+            assert manager.pause_comic(COMIC_ID) is True
+            first_page_downloaded.set()
+        return b"page"
+
+    monkeypatch.setattr(manager, "_fetch_with_retry", fake_fetch)
+
+    task = asyncio.create_task(manager._download_chapter(COMIC_ID, comic["chapters"][0], job))
+    await asyncio.wait_for(first_page_downloaded.wait(), timeout=1)
+    await asyncio.sleep(0.05)
+
+    assert task.done() is False
+    assert manager.get_status(COMIC_ID)["state"] == "paused"
+    assert calls == [pages[0]]
+
+    assert manager.resume_comic(COMIC_ID) is True
+    assert await task == "downloaded"
+    assert calls == pages
+
+
+@pytest.mark.asyncio
+async def test_resume_after_pause(isolated_storage, monkeypatch):
+    manager = DownloadManager()
+
+    async def fake_download_cover(comic_id, metadata):
+        return None
+
+    monkeypatch.setattr(manager, "_download_cover", fake_download_cover)
+
+    await manager.enqueue_comic(COMIC_ID)
+    assert manager.pause_comic(COMIC_ID) is True
+    assert manager.resume_comic(COMIC_ID) is True
+
+    status = manager.get_status(COMIC_ID)
+    assert status["state"] == "queued"
+    assert manager._jobs[COMIC_ID].resume_event.is_set() is True
+
+
+@pytest.mark.asyncio
+async def test_cancel_queued_job(isolated_storage, monkeypatch):
+    manager = DownloadManager()
+
+    async def fake_download_cover(comic_id, metadata):
+        return None
+
+    monkeypatch.setattr(manager, "_download_cover", fake_download_cover)
+
+    await manager.enqueue_comic(COMIC_ID)
+
+    assert manager.cancel_comic(COMIC_ID) is True
+    assert manager.get_status(COMIC_ID)["state"] == "cancelled"
+    assert manager._queue.empty()
+    chapters = storage.load_comic_metadata(COMIC_ID)["chapters"]
+    assert {chapter["status"] for chapter in chapters} == {"cancelled"}
+
+
+@pytest.mark.asyncio
+async def test_cancel_during_active_job(isolated_storage, monkeypatch):
+    pages = ["https://fake.local/001.jpg", "https://fake.local/002.jpg"]
+    comic = sample_comic()
+    comic["source"] = "Fake"
+    comic["source_url"] = "fake://phase16"
+    storage.save_library({"version": 1, "comics": [comic]})
+    storage.save_comic_metadata(COMIC_ID, comic)
+    monkeypatch.setattr(
+        download_manager_module,
+        "source_registry",
+        SourceRegistry([FakeSourceAdapter(pages=pages)]),
+    )
+
+    manager = DownloadManager()
+    job = DownloadJob(COMIC_ID, total_chapters=1)
+    job.status = "downloading"
+    manager._jobs[COMIC_ID] = job
+    first_page_downloaded = asyncio.Event()
+    calls: list[str] = []
+
+    async def fake_fetch(url: str) -> bytes:
+        calls.append(url)
+        if len(calls) == 1:
+            assert manager.cancel_comic(COMIC_ID) is True
+            first_page_downloaded.set()
+        return b"page"
+
+    monkeypatch.setattr(manager, "_fetch_with_retry", fake_fetch)
+
+    with pytest.raises(DownloadCancelled):
+        await manager._download_chapter(COMIC_ID, comic["chapters"][0], job)
+
+    assert first_page_downloaded.is_set()
+    assert calls == [pages[0]]
+    chapter = storage.load_comic_metadata(COMIC_ID)["chapters"][0]
+    assert chapter["status"] == "cancelled"
+    assert chapter.get("error_message", "") == ""
 
 
 def test_get_status_falls_back_to_metadata(isolated_storage):
@@ -190,6 +329,41 @@ def test_partial_download_marks_chapter_partial(isolated_storage):
     assert chapter["status"] == "partial"
     assert chapter["downloaded_pages"] == 1
     assert chapter["local_pages"] == ["comics/mangadex-test/chapters/chapter-001/001.jpg"]
+
+
+@pytest.mark.asyncio
+async def test_retry_partial_chapter(isolated_storage):
+    comic = sample_comic()
+    comic["chapters"][0]["status"] = "partial"
+    comic["chapters"][0]["pages"] = 3
+    comic["chapters"][0]["downloaded_pages"] = 1
+    comic["chapters"][0]["local_pages"] = ["comics/mangadex-test/chapters/chapter-001/001.jpg"]
+    storage.save_library({"version": 1, "comics": [comic]})
+    storage.save_comic_metadata(COMIC_ID, comic)
+    manager = DownloadManager()
+
+    assert await manager.retry_chapter(COMIC_ID, "chapter-001") is True
+
+    chapter = storage.load_comic_metadata(COMIC_ID)["chapters"][0]
+    assert chapter["status"] == "queued"
+    assert manager.get_status(COMIC_ID)["state"] == "queued"
+    assert manager._queue.qsize() == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_cancelled_chapter(isolated_storage):
+    comic = sample_comic()
+    comic["chapters"][0]["status"] = "cancelled"
+    storage.save_library({"version": 1, "comics": [comic]})
+    storage.save_comic_metadata(COMIC_ID, comic)
+    manager = DownloadManager()
+
+    assert await manager.retry_chapter(COMIC_ID, "chapter-001") is True
+
+    chapter = storage.load_comic_metadata(COMIC_ID)["chapters"][0]
+    assert chapter["status"] == "queued"
+    assert manager.get_status(COMIC_ID)["state"] == "queued"
+    assert manager._queue.qsize() == 1
 
 
 def test_library_response_validates_through_comic_model(isolated_storage):
