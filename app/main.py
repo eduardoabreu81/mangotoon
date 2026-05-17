@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.core.config import settings
 from app.routers.downloads import router as downloads_router
+from app.routers.history import router as history_router
 from app.routers.library import router as library_router
 from app.routers.reader import router as reader_router
 from app.routers.settings import router as settings_router
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(settings_router, prefix="/api")
     app.include_router(downloads_router, prefix="/api")
     app.include_router(reader_router, prefix="/api")
+    app.include_router(history_router, prefix="/api")
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:

@@ -792,6 +792,28 @@ h1 {
   margin-bottom: 1.25rem;
 }
 
+.chapter-complete-box .btn-primary {
+  display: inline-block;
+}
+
+/* Continue button on history cards */
+
+.card-continue {
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.card-continue:hover {
+  background: var(--accent-hover);
+}
+
 @media (max-width: 640px) {
   .page-header,
   .toolbar {

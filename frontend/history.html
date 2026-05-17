@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MangoToon — History</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Reading History</p>
+        <h1>History</h1>
+      </div>
+      <a href="/" class="status-pill">← Library</a>
+    </header>
+
+    <section id="history-loading" class="library-loading" aria-label="Loading" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <span>Loading history...</span>
+    </section>
+
+    <section id="history-empty" class="empty-library" aria-label="History" hidden>
+      <h2>No Reading History</h2>
+      <p>Start reading a manga to see your history here. Your reading progress is saved automatically.</p>
+    </section>
+
+    <section id="history-error" class="empty-library" aria-label="Error" hidden>
+      <h2>Could Not Load History</h2>
+      <p id="history-error-msg">An error occurred while loading your reading history.</p>
+      <a href="/" class="btn-primary" style="display: inline-block; margin-top: 1rem;">Back to Library</a>
+    </section>
+
+    <div id="history-grid" class="library-grid" aria-label="Reading history"></div>
+  </main>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/history.js"></script>
+</body>
+</html>
