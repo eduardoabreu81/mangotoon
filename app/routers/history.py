@@ -8,12 +8,12 @@ router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.get("")
-async def list_history() -> list[dict]:
+async def list_history() -> dict[str, list[dict]]:
     history = storage.load_history()
     # Guard against cases where load_history returns a list directly
     if isinstance(history, list):
-        return history[:20]
-    return history.get("items", [])[:20]
+        return {"items": history[:20]}
+    return {"items": history.get("items", [])[:20]}
 
 
 @router.delete("/{comic_id}")

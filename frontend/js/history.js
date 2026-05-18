@@ -22,7 +22,8 @@
 
     API.get("/history")
       .then(function (data) {
-        historyItems = data.items || [];
+        // Phase 17.9: API may return array directly or {items: [...]}
+        historyItems = Array.isArray(data) ? data : (data.items || []);
         if (historyItems.length === 0) {
           showEmpty();
           return;

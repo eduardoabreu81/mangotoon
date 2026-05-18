@@ -50,7 +50,7 @@ def test_get_history_returns_empty_list_initially(tmp_path, monkeypatch):
     response = TestClient(app).get("/api/history")
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"items": []}
 
 
 def test_get_history_returns_items_after_progress_save(tmp_path, monkeypatch):
@@ -65,7 +65,9 @@ def test_get_history_returns_items_after_progress_save(tmp_path, monkeypatch):
 
     assert progress_response.status_code == 200
     assert history_response.status_code == 200
-    items = history_response.json()
+    data = history_response.json()
+    assert "items" in data
+    items = data["items"]
     assert len(items) == 1
     assert items[0]["comic_id"] == COMIC_ID
     assert items[0]["title"] == "History Test Manga"
@@ -88,7 +90,7 @@ def test_delete_history_item_removes_item(tmp_path, monkeypatch):
 
     assert delete_response.status_code == 200
     assert delete_response.json() == {"message": "History item deleted.", "comic_id": COMIC_ID}
-    assert history_response.json() == []
+    assert history_response.json() == {"items": []}
 
 
 def test_delete_history_item_returns_404_for_missing_comic(tmp_path, monkeypatch):
