@@ -19,7 +19,10 @@
   var drawerOpen = false;
   var drawerLoading = false;
 
-  // Phase 17.8: Preload cache (DISABLED for debugging)
+  // Phase 17.9: Debug flag — set to true for verbose reader logging
+  var READER_DEBUG = false;
+
+  // Phase 17.8: Preload cache (DISABLED until controlled queue is implemented)
   var imageCache = {}; // src -> {img, status, promise}
   var maxPreloadAhead = 0;
   var maxPreloadBehind = 0;
@@ -507,11 +510,15 @@
     updateProgressBar();
 
     var src = buildPageSrc(currentPage);
-    console.debug("[reader] visible src set | " + src + " | token=" + myToken);
+    if (READER_DEBUG) {
+      console.debug("[reader] visible src set | " + src + " | token=" + myToken);
+    }
 
     img.onload = function () {
       if (myToken !== pageLoadToken) {
-        console.debug("[reader] stale onload ignored | myToken=" + myToken);
+        if (READER_DEBUG) {
+          console.debug("[reader] stale onload ignored | myToken=" + myToken);
+        }
         return;
       }
       loading.hidden = true;
@@ -520,18 +527,24 @@
       applyFitMode();
       scheduleSaveProgress();
       checkChapterComplete();
-      console.debug("[reader] visible img onload | elapsed=" + (performance.now() - t0).toFixed(1) + "ms | token=" + myToken);
+      if (READER_DEBUG) {
+        console.debug("[reader] visible img onload | elapsed=" + (performance.now() - t0).toFixed(1) + "ms | token=" + myToken);
+      }
     };
 
     img.onerror = function () {
       if (myToken !== pageLoadToken) {
-        console.debug("[reader] stale onerror ignored | myToken=" + myToken);
+        if (READER_DEBUG) {
+          console.debug("[reader] stale onerror ignored | myToken=" + myToken);
+        }
         return;
       }
       loading.hidden = true;
       img.hidden = true;
       showPageError("Page " + currentPage + " could not be loaded.");
-      console.debug("[reader] visible img onerror | token=" + myToken);
+      if (READER_DEBUG) {
+        console.debug("[reader] visible img onerror | token=" + myToken);
+      }
     };
 
     img.src = src;
@@ -539,12 +552,12 @@
   }
 
   function schedulePreload() {
-    // PRELOAD DISABLED for debugging — do nothing
+    // PRELOAD DISABLED until controlled queue is implemented.
     return;
   }
 
   function preloadNeighbors() {
-    // PRELOAD DISABLED for debugging — do nothing
+    // PRELOAD DISABLED until controlled queue is implemented.
     return;
   }
 

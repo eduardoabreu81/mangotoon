@@ -343,6 +343,13 @@
     var statusIcon = getChapterStatusIcon(ch.status);
     var statusClass = "chapter-status chapter-status-" + (ch.status || "not_downloaded");
 
+    // Determine if this is the current chapter in progress
+    var progress = comicData.reading_progress || comicData.progress;
+    var isCurrent = progress && progress.chapter_id === ch.chapter_id;
+    var rowClass = "chapter-row";
+    if (isCurrent) rowClass += " chapter-current";
+    if (ch.completed) rowClass += " chapter-read";
+
     var actionHtml = "";
     if (ch.status === "not_downloaded") {
       actionHtml =
@@ -378,13 +385,18 @@
         '<span class="chapter-dl-progress chapter-dl-partial">' + partialPct + "%</span>";
     }
 
+    var currentBadge = "";
+    if (isCurrent) {
+      currentBadge = '<span class="chapter-current-badge">Current</span>';
+    }
+
     var completedBadge = "";
-    if (ch.completed) {
+    if (ch.completed && !isCurrent) {
       completedBadge = '<span class="chapter-completed-badge">Read</span>';
     }
 
     return (
-      '<div class="chapter-row" data-chapter-id="' +
+      '<div class="' + rowClass + '" data-chapter-id="' +
       escapeAttr(ch.chapter_id) +
       '">' +
       '<span class="' +
@@ -403,6 +415,7 @@
       '<span class="chapter-lang">' +
       escapeHtml(ch.language || "en") +
       "</span>" +
+      currentBadge +
       completedBadge +
       progressInfo +
       '<span class="chapter-actions">' +
@@ -517,7 +530,16 @@
     if (btnRetryFailed) btnRetryFailed.hidden = !hasFailed;
 
     var isDownloaded = comicData.downloaded_count > 0;
-    if (btnRead) btnRead.hidden = !isDownloaded;
+    if (btnRead) {
+      btnRead.hidden = !isDownloaded;
+      // Phase 17.9: Show "Continue Reading" if there's saved progress
+      var progress = comicData.reading_progress || comicData.progress;
+      if (progress && progress.chapter_id) {
+        btnRead.innerHTML = "<span>&#x25B6;</span> Continue Reading";
+      } else {
+        btnRead.innerHTML = "<span>&#x25B6;</span> Read";
+      }
+    }
   }
 
   function onRead() {
