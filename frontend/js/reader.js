@@ -485,7 +485,7 @@
   }
 
   /* ============================================================
-     PAGE LOADING — SIMPLIFIED (preload disabled for debugging)
+     PAGE LOADING — Direct render, no cache gate
      ============================================================ */
 
   function loadPage() {
@@ -500,7 +500,6 @@
     var myToken = pageLoadToken;
     var t0 = performance.now();
 
-    img.hidden = true;
     loading.hidden = false;
     if (errorEl) errorEl.hidden = true;
 
@@ -508,90 +507,35 @@
     updateProgressBar();
 
     var src = buildPageSrc(currentPage);
-    console.debug("[reader] direct page src | " + src + " | token=" + myToken);
+    console.debug("[reader] visible src set | " + src + " | token=" + myToken);
 
-    var cached = imageCache[src];
-    if (cached) {
-      console.debug("[reader] cache status | " + cached.status + " | token=" + myToken);
-      if (cached.status === "loaded") {
-        renderLoadedImage(img, loading, errorEl, src, myToken, t0);
+    img.onload = function () {
+      if (myToken !== pageLoadToken) {
+        console.debug("[reader] stale onload ignored | myToken=" + myToken);
         return;
       }
-      if (cached.status === "loading") {
-        cached.promise.then(function () {
-          if (myToken !== pageLoadToken) {
-            console.debug("[reader] stale promise ignored | myToken=" + myToken + " | current=" + pageLoadToken);
-            return;
-          }
-          renderLoadedImage(img, loading, errorEl, src, myToken, t0);
-        }).catch(function () {
-          if (myToken !== pageLoadToken) return;
-          renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
-        });
-        return;
-      }
-      // status === "error" → fall through and retry
-      console.debug("[reader] cache error, retrying | token=" + myToken);
-    }
-
-    // Fresh load with Promise-based tracking
-    var entry = {
-      img: new Image(),
-      status: "loading",
-      promise: null
+      loading.hidden = true;
+      if (errorEl) errorEl.hidden = true;
+      applyZoom();
+      applyFitMode();
+      scheduleSaveProgress();
+      checkChapterComplete();
+      console.debug("[reader] visible img onload | elapsed=" + (performance.now() - t0).toFixed(1) + "ms | token=" + myToken);
     };
-    imageCache[src] = entry;
 
-    entry.promise = new Promise(function (resolve, reject) {
-      entry.img.onload = function () {
-        if (myToken !== pageLoadToken) {
-          console.debug("[reader] stale onload ignored | myToken=" + myToken);
-          resolve();
-          return;
-        }
-        entry.status = "loaded";
-        var t1 = performance.now();
-        console.debug("[reader] fetch/decode elapsed | " + (t1 - t0).toFixed(1) + "ms | token=" + myToken);
-        resolve();
-      };
-      entry.img.onerror = function () {
-        entry.status = "error";
-        reject(new Error("Failed to load " + src));
-      };
-      entry.img.src = src;
-    });
+    img.onerror = function () {
+      if (myToken !== pageLoadToken) {
+        console.debug("[reader] stale onerror ignored | myToken=" + myToken);
+        return;
+      }
+      loading.hidden = true;
+      img.hidden = true;
+      showPageError("Page " + currentPage + " could not be loaded.");
+      console.debug("[reader] visible img onerror | token=" + myToken);
+    };
 
-    entry.promise.then(function () {
-      if (myToken !== pageLoadToken) return;
-      renderLoadedImage(img, loading, errorEl, src, myToken, t0);
-    }).catch(function () {
-      if (myToken !== pageLoadToken) return;
-      renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
-    });
-  }
-
-  function renderLoadedImage(img, loading, errorEl, src, token, t0) {
-    var tRender = performance.now();
     img.src = src;
     img.hidden = false;
-    loading.hidden = true;
-    if (errorEl) errorEl.hidden = true;
-    applyZoom();
-    applyFitMode();
-    scheduleSaveProgress();
-    checkChapterComplete();
-
-    console.debug(
-      "[reader] render elapsed | " + (tRender - t0).toFixed(1) + "ms | " +
-      "total elapsed | " + (performance.now() - t0).toFixed(1) + "ms | " +
-      "token=" + token
-    );
-  }
-
-  function renderLoadError(loading, img, msg) {
-    loading.hidden = true;
-    img.hidden = true;
-    showPageError(msg);
   }
 
   function schedulePreload() {
