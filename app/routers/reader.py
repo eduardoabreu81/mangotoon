@@ -2,7 +2,9 @@
 
 import logging
 import re
+import time
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -15,12 +17,40 @@ logger = logging.getLogger(__name__)
 
 SAFE_ID_RE = re.compile(r"^[\w-]+$")
 
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".avif"}
+
+_MEDIA_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".avif": "image/avif",
+}
+
 
 class SaveProgressRequest(BaseModel):
     chapter_id: str
     page: int
     total_pages: int
     completed: bool = False
+
+
+def _chapter_files_from_dir(comic_id: str, chapter_id: str) -> list[Path]:
+    """List image files directly from chapter directory — no metadata read."""
+    comics_root = storage.COMICS_DIR.resolve()
+    chapter_dir = (storage.COMICS_DIR / comic_id / "chapters" / chapter_id).resolve()
+    if not chapter_dir.is_relative_to(comics_root) or not chapter_dir.exists():
+        return []
+    files = [
+        path for path in chapter_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in _IMAGE_EXTS
+    ]
+    files.sort(key=lambda p: p.name)
+    return files
+
+
+def _media_type_for(path: Path) -> str:
+    return _MEDIA_TYPES.get(path.suffix.lower(), "application/octet-stream")
 
 
 @router.get("/{comic_id}/data")
@@ -68,22 +98,14 @@ async def get_reader_chapters(comic_id: str) -> dict:
 
 @router.get("/{comic_id}/{chapter_id}/{page_number}")
 async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> FileResponse:
+    t0 = time.perf_counter()
+
     if not SAFE_ID_RE.match(comic_id) or not SAFE_ID_RE.match(chapter_id):
         raise HTTPException(status_code=400, detail="Invalid comic or chapter ID")
+    if page_number < 1:
+        raise HTTPException(status_code=400, detail="Page number must be >= 1")
 
-    comics_root = storage.COMICS_DIR.resolve()
-    chapter_dir = (storage.COMICS_DIR / comic_id / "chapters" / chapter_id).resolve()
-    if not chapter_dir.is_relative_to(comics_root):
-        raise HTTPException(status_code=400, detail="Invalid comic or chapter ID")
-
-    meta = storage.load_comic_metadata(comic_id)
-    chapter = {}
-    if meta:
-        chapter = next(
-            (item for item in meta.get("chapters", []) if item.get("chapter_id") == chapter_id),
-            {},
-        )
-    pages = _chapter_page_paths(comic_id, chapter) if chapter else _fallback_chapter_pages(comic_id, chapter_id)
+    pages = _chapter_files_from_dir(comic_id, chapter_id)
     index = page_number - 1
     if index < 0 or index >= len(pages):
         raise HTTPException(status_code=404, detail="Page not found")
@@ -91,7 +113,50 @@ async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> Fi
     page_path = pages[index]
     if not page_path.exists():
         raise HTTPException(status_code=404, detail="Page not found")
-    return FileResponse(page_path)
+
+    resolve_ms = (time.perf_counter() - t0) * 1000
+    file_size = page_path.stat().st_size
+
+    logger.info(
+        "Reader image served: comic=%s chapter=%s page=%s size=%s resolve_ms=%.2f",
+        comic_id, chapter_id, page_number, file_size, resolve_ms,
+    )
+
+    return FileResponse(
+        page_path,
+        media_type=_media_type_for(page_path),
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "X-MangoToon-File-Size": str(file_size),
+            "X-MangoToon-Source": "direct-local-file",
+        },
+    )
+
+
+@router.get("/{comic_id}/{chapter_id}/{page_number}/debug")
+async def get_page_image_debug(comic_id: str, chapter_id: str, page_number: int) -> dict:
+    t0 = time.perf_counter()
+
+    if not SAFE_ID_RE.match(comic_id) or not SAFE_ID_RE.match(chapter_id):
+        raise HTTPException(status_code=400, detail="Invalid comic or chapter ID")
+    if page_number < 1:
+        raise HTTPException(status_code=400, detail="Page number must be >= 1")
+
+    pages = _chapter_files_from_dir(comic_id, chapter_id)
+    index = page_number - 1
+    page_path = pages[index] if 0 <= index < len(pages) else None
+    resolve_ms = (time.perf_counter() - t0) * 1000
+
+    return {
+        "resolved_path": str(page_path) if page_path else None,
+        "exists": page_path.exists() if page_path else False,
+        "file_size_bytes": page_path.stat().st_size if page_path and page_path.exists() else 0,
+        "suffix": page_path.suffix if page_path else None,
+        "page_index": index,
+        "local_file_count": len(pages),
+        "resolve_ms": round(resolve_ms, 2),
+        "source": "direct-local-file",
+    }
 
 
 def _chapter_page_paths(comic_id: str, chapter: dict) -> list:
