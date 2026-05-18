@@ -38,3 +38,4 @@ docs/
 # Temporary agent prompts
 .tmp_prompts/
 codex_manga_app_phase_prompts/
+SESSION_SUMMARY.md
