@@ -7,33 +7,84 @@
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-  <main class="page-shell">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Reading History</p>
-        <h1>History</h1>
+
+  <div class="app-shell">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">M</div>
+        <h1 class="sidebar-brand-title">MangoToon</h1>
       </div>
-      <a href="/" class="status-pill">← Library</a>
-    </header>
 
-    <section id="history-loading" class="library-loading" aria-label="Loading" hidden>
-      <div class="spinner" aria-hidden="true"></div>
-      <span>Loading history...</span>
-    </section>
+      <nav class="sidebar-nav">
+        <a href="/">
+          <span class="nav-icon">&#x1F4DA;</span>
+          <span>Library</span>
+        </a>
+        <a href="/history" class="active">
+          <span class="nav-icon">&#x23F3;</span>
+          <span>History</span>
+        </a>
+        <a href="/settings">
+          <span class="nav-icon">&#x2699;</span>
+          <span>Settings</span>
+        </a>
+      </nav>
 
-    <section id="history-empty" class="empty-library" aria-label="History" hidden>
-      <h2>No Reading History</h2>
-      <p>Start reading a manga to see your history here. Your reading progress is saved automatically.</p>
-    </section>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">&#x1F464;</div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">User</span>
+            <span class="sidebar-user-tier">Local Mode</span>
+          </div>
+        </div>
+      </div>
+    </aside>
 
-    <section id="history-error" class="empty-library" aria-label="Error" hidden>
-      <h2>Could Not Load History</h2>
-      <p id="history-error-msg">An error occurred while loading your reading history.</p>
-      <a href="/" class="btn-primary" style="display: inline-block; margin-top: 1rem;">Back to Library</a>
-    </section>
+    <!-- Main Content -->
+    <main class="main-content">
 
-    <div id="history-grid" class="library-grid" aria-label="Reading history"></div>
-  </main>
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <h2 style="font-size:1.25rem;font-weight:700;">Reading History</h2>
+        </div>
+        <div class="top-bar-right">
+          <a href="/" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;gap:6px;">
+            <span>&#x2190;</span>
+            <span>Back to Library</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-area">
+
+        <section id="history-loading" class="library-loading" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <span>Loading history...</span>
+        </section>
+
+        <section id="history-empty" class="empty-library" hidden>
+          <h2>No Reading History</h2>
+          <p>Start reading a manga to see your history here. Your reading progress is saved automatically.</p>
+        </section>
+
+        <section id="history-error" class="empty-library" hidden>
+          <h2>Could Not Load History</h2>
+          <p id="history-error-msg">An error occurred while loading your reading history.</p>
+          <a href="/" class="btn-primary" style="display:inline-block;margin-top:1rem;">Back to Library</a>
+        </section>
+
+        <div id="history-grid" class="library-grid" aria-label="Reading history"></div>
+
+      </div>
+
+    </main>
+
+  </div>
 
   <script src="/static/js/api.js"></script>
   <script src="/static/js/history.js"></script>

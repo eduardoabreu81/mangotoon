@@ -8,91 +8,140 @@
 </head>
 <body>
 
-  <main class="page-shell">
+  <div class="app-shell">
 
-    <!-- Back navigation -->
-    <header class="detail-topbar">
-      <a href="/" class="reader-back-btn">← Library</a>
-      <h1 id="detail-top-title" class="detail-top-title">Loading...</h1>
-      <span></span>
-    </header>
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">M</div>
+        <h1 class="sidebar-brand-title">MangoToon</h1>
+      </div>
 
-    <!-- Loading -->
-    <section id="detail-loading" class="library-loading" aria-label="Loading">
-      <div class="spinner" aria-hidden="true"></div>
-      <span>Loading comic...</span>
-    </section>
+      <nav class="sidebar-nav">
+        <a href="/" class="active">
+          <span class="nav-icon">&#x1F4DA;</span>
+          <span>Library</span>
+        </a>
+        <a href="/history">
+          <span class="nav-icon">&#x23F3;</span>
+          <span>History</span>
+        </a>
+        <a href="/settings">
+          <span class="nav-icon">&#x2699;</span>
+          <span>Settings</span>
+        </a>
+      </nav>
 
-    <!-- Error -->
-    <section id="detail-error" class="reader-error" hidden>
-      <p id="detail-error-msg">Comic not found.</p>
-      <a href="/" class="btn-primary">Back to Library</a>
-    </section>
-
-    <!-- Detail content -->
-    <div id="detail-content" class="detail-content" hidden>
-
-      <!-- Cover + Metadata -->
-      <section class="detail-header">
-        <div class="detail-cover-wrap">
-          <img id="detail-cover" class="detail-cover" src="" alt="">
-          <div id="detail-cover-placeholder" class="detail-cover-placeholder" hidden></div>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">&#x1F464;</div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">User</span>
+            <span class="sidebar-user-tier">Local Mode</span>
+          </div>
         </div>
-        <div class="detail-meta">
-          <div class="detail-meta-top">
-            <h2 id="detail-title-display" class="detail-title-display"></h2>
-            <div id="detail-source" class="preview-source"></div>
-          </div>
+      </div>
+    </aside>
 
-          <span id="detail-status" class="status-badge"></span>
+    <!-- Main Content -->
+    <main class="main-content">
 
-          <p id="detail-description" class="detail-description-text" hidden></p>
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <a href="/" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;gap:6px;">
+            <span>&#x2190;</span>
+            <span>Back to Library</span>
+          </a>
+        </div>
+        <div class="top-bar-right">
+          <h2 id="detail-top-title" style="font-size:1.1rem;font-weight:600;color:var(--text-secondary);">Loading...</h2>
+        </div>
+      </header>
 
-          <div class="detail-stats">
-            <span id="detail-chapter-count">0 chapters</span>
-            <span class="detail-stats-sep">·</span>
-            <span id="detail-downloaded-count">0 downloaded</span>
-          </div>
+      <!-- Content Area -->
+      <div class="content-area">
 
-          <div id="detail-progress" class="detail-progress" hidden>
-            <div class="detail-progress-bar">
-              <div id="detail-progress-fill" class="detail-progress-fill"></div>
+        <!-- Loading -->
+        <section id="detail-loading" class="library-loading" aria-label="Loading">
+          <div class="spinner" aria-hidden="true"></div>
+          <span>Loading comic...</span>
+        </section>
+
+        <!-- Error -->
+        <section id="detail-error" class="reader-error" hidden>
+          <p id="detail-error-msg">Comic not found.</p>
+          <a href="/" class="btn-primary">Back to Library</a>
+        </section>
+
+        <!-- Detail content -->
+        <div id="detail-content" class="detail-content" hidden>
+
+          <!-- Cover + Metadata -->
+          <section class="detail-header">
+            <div class="detail-cover-wrap">
+              <img id="detail-cover" class="detail-cover" src="" alt="">
+              <div id="detail-cover-placeholder" class="detail-cover-placeholder" hidden></div>
             </div>
-            <span id="detail-progress-text" class="detail-progress-text"></span>
-          </div>
+            <div class="detail-meta">
+              <div class="detail-meta-top">
+                <h2 id="detail-title-display" class="detail-title-display"></h2>
+                <div id="detail-source" class="preview-source"></div>
+              </div>
 
-          <div id="detail-reading-progress" class="detail-reading-progress" hidden>
-            <span id="detail-reading-text"></span>
-          </div>
+              <span id="detail-status" class="status-badge"></span>
+
+              <p id="detail-description" class="detail-description-text" hidden></p>
+
+              <div class="detail-stats">
+                <span id="detail-chapter-count">0 chapters</span>
+                <span class="detail-stats-sep">·</span>
+                <span id="detail-downloaded-count">0 downloaded</span>
+              </div>
+
+              <div id="detail-progress" class="detail-progress" hidden>
+                <div class="detail-progress-bar">
+                  <div id="detail-progress-fill" class="detail-progress-fill"></div>
+                </div>
+                <span id="detail-progress-text" class="detail-progress-text"></span>
+              </div>
+
+              <div id="detail-reading-progress" class="detail-reading-progress" hidden>
+                <span id="detail-reading-text"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Actions -->
+          <section class="detail-actions">
+            <button id="btn-detail-read" class="btn-primary">Read</button>
+            <button id="btn-detail-download-missing" class="btn-secondary">Download Missing</button>
+            <button id="btn-detail-retry-failed" class="btn-secondary" hidden>Retry Failed</button>
+            <button id="btn-detail-refresh" class="btn-secondary">Refresh</button>
+            <button id="btn-detail-delete" class="btn-secondary detail-delete-btn">Delete</button>
+          </section>
+
+          <!-- Chapter List -->
+          <section class="detail-chapters">
+            <div class="detail-chapters-header">
+              <h3>Chapters</h3>
+              <span id="detail-chapters-filter-count" class="sidebar-count"></span>
+            </div>
+            <div id="detail-chapter-list" class="detail-chapter-list"></div>
+            <div id="detail-no-chapters" class="detail-no-chapters" hidden>No chapters available.</div>
+          </section>
         </div>
-      </section>
 
-      <!-- Actions -->
-      <section class="detail-actions">
-        <button id="btn-detail-read" class="btn-primary">Read</button>
-        <button id="btn-detail-download-missing" class="btn-secondary">Download Missing</button>
-        <button id="btn-detail-retry-failed" class="btn-secondary" hidden>Retry Failed</button>
-        <button id="btn-detail-refresh" class="btn-secondary">Refresh</button>
-        <button id="btn-detail-delete" class="btn-secondary detail-delete-btn">Delete</button>
-      </section>
+      </div>
 
-      <!-- Chapter List -->
-      <section class="detail-chapters">
-        <div class="detail-chapters-header">
-          <h3>Chapters</h3>
-          <span id="detail-chapters-filter-count" class="sidebar-count"></span>
-        </div>
-        <div id="detail-chapter-list" class="detail-chapter-list"></div>
-        <div id="detail-no-chapters" class="detail-no-chapters" hidden>No chapters available.</div>
-      </section>
-    </div>
+    </main>
 
-    <!-- Toast -->
-    <div id="toast" class="toast" hidden>
-      <span id="toast-msg"></span>
-    </div>
+  </div>
 
-  </main>
+  <!-- Toast -->
+  <div id="toast" class="toast" hidden>
+    <span id="toast-msg"></span>
+  </div>
 
   <script src="/static/js/api.js"></script>
   <script src="/static/js/comic.js"></script>

@@ -10,18 +10,18 @@
 
   <!-- Top bar (auto-hides while reading) -->
   <header id="reader-top" class="reader-top">
-    <a href="/" id="reader-back" class="reader-back-btn">← Library</a>
+    <a href="/" id="reader-back" class="reader-back-btn">&#x2190; Library</a>
     <div class="reader-info">
       <span id="reader-title" class="reader-manga-title"></span>
       <span id="reader-chapter-label" class="reader-chapter-label"></span>
     </div>
-    <button id="btn-chapter-drawer" class="reader-ctrl-btn reader-drawer-toggle-btn" title="Chapter list" aria-label="Toggle chapter list">☰</button>
+    <button id="btn-chapter-drawer" class="reader-ctrl-btn reader-drawer-toggle-btn" title="Chapter list" aria-label="Toggle chapter list">&#x2630;</button>
     <div class="reader-controls" id="reader-controls">
-      <button id="btn-zoom-out" class="reader-ctrl-btn" title="Zoom out" aria-label="Zoom out">−</button>
+      <button id="btn-zoom-out" class="reader-ctrl-btn" title="Zoom out" aria-label="Zoom out">&#x2212;</button>
       <button id="btn-zoom-reset" class="reader-ctrl-btn" title="Reset zoom" aria-label="Reset zoom">100%</button>
       <button id="btn-zoom-in" class="reader-ctrl-btn" title="Zoom in" aria-label="Zoom in">+</button>
-      <button id="btn-fit" class="reader-ctrl-btn" title="Fit mode" aria-label="Change fit mode">⊠</button>
-      <button id="btn-fullscreen" class="reader-ctrl-btn" title="Fullscreen" aria-label="Toggle fullscreen">⛶</button>
+      <button id="btn-fit" class="reader-ctrl-btn" title="Fit mode" aria-label="Change fit mode">&#x2296;</button>
+      <button id="btn-fullscreen" class="reader-ctrl-btn" title="Fullscreen" aria-label="Toggle fullscreen">&#x26F6;</button>
     </div>
     <span id="reader-page-indicator" class="reader-page-indicator">— / —</span>
   </header>
@@ -63,14 +63,14 @@
 
   <!-- Bottom bar (auto-hides while reading) -->
   <footer id="reader-bottom" class="reader-bottom">
-    <button id="btn-prev-chapter" class="reader-nav-btn" aria-label="Previous chapter">‹ Ch</button>
+    <button id="btn-prev-chapter" class="reader-nav-btn" aria-label="Previous chapter">&#x2039; Ch</button>
     <select id="chapter-select" class="reader-chapter-select" aria-label="Select chapter"></select>
     <div class="reader-progress-wrap">
       <div id="reader-progress-bar" class="reader-progress-bar">
         <div id="reader-progress-fill" class="reader-progress-fill"></div>
       </div>
     </div>
-    <button id="btn-next-chapter" class="reader-nav-btn" aria-label="Next chapter">Ch ›</button>
+    <button id="btn-next-chapter" class="reader-nav-btn" aria-label="Next chapter">Ch &#x203A;</button>
   </footer>
 
   <!-- Chapter drawer -->
@@ -78,7 +78,7 @@
   <div id="reader-drawer" class="reader-drawer" hidden>
     <div class="reader-drawer-header">
       <h2>Chapters</h2>
-      <button id="btn-drawer-close" class="reader-drawer-close-btn" aria-label="Close">×</button>
+      <button id="btn-drawer-close" class="reader-drawer-close-btn" aria-label="Close">&times;</button>
     </div>
     <div class="reader-drawer-error" id="reader-drawer-error" hidden>
       <p id="reader-drawer-error-msg">Failed to load chapters.</p>

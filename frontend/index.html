@@ -3,181 +3,261 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MangoToon</title>
+  <title>MangoToon — Library</title>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-  <main class="page-shell">
 
-    <!-- Sidebar overlay -->
-    <div id="sidebar-overlay" class="sidebar-overlay" hidden></div>
+  <!-- Mobile sidebar overlay -->
+  <div id="sidebar-overlay" class="sidebar-overlay" hidden></div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar" hidden>
-      <div class="sidebar-header">
-        <h2>Filters &amp; Sort</h2>
-        <button id="sidebar-close" class="sidebar-close-btn" aria-label="Close sidebar">&times;</button>
+  <div class="app-shell">
+
+    <!-- Left Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">M</div>
+        <h1 class="sidebar-brand-title">MangoToon</h1>
       </div>
 
-      <div class="sidebar-section">
-        <h3 class="sidebar-label">Status</h3>
-        <div class="filter-chips" id="filter-status">
-          <button class="filter-chip active" data-status="all">All</button>
-          <button class="filter-chip" data-status="reading">Reading</button>
-          <button class="filter-chip" data-status="completed">Completed</button>
-          <button class="filter-chip" data-status="downloaded">Downloaded</button>
-          <button class="filter-chip" data-status="pending">Pending</button>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <h3 class="sidebar-label">Source</h3>
-        <div class="filter-chips" id="filter-source">
-          <button class="filter-chip active" data-source="all">All</button>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <h3 class="sidebar-label">Sort</h3>
-        <select id="sidebar-sort" class="sidebar-select" aria-label="Sort library">
-          <option value="added">Recently Added</option>
-          <option value="title">Title A-Z</option>
-          <option value="read">Last Read</option>
-          <option value="progress">Download Progress</option>
-        </select>
-      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="active">
+          <span class="nav-icon">&#x1F4DA;</span>
+          <span>Library</span>
+        </a>
+        <a href="/history">
+          <span class="nav-icon">&#x23F3;</span>
+          <span>History</span>
+        </a>
+        <a href="/settings">
+          <span class="nav-icon">&#x2699;</span>
+          <span>Settings</span>
+        </a>
+      </nav>
 
       <div class="sidebar-footer">
-        <span id="sidebar-count" class="sidebar-count"></span>
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">&#x1F464;</div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">User</span>
+            <span class="sidebar-user-tier">Local Mode</span>
+          </div>
+        </div>
       </div>
     </aside>
 
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Local Library</p>
-        <h1>MangaToon</h1>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <a href="/settings" class="status-pill">Settings</a>
-        <a href="/history" class="status-pill">History</a>
-        <span id="api-status" class="status-pill">Checking...</span>
-      </div>
-    </header>
+    <!-- Main Content -->
+    <main class="main-content">
 
-    <section class="toolbar" aria-label="Library controls">
-      <button id="btn-sidebar-toggle" class="btn-sidebar-toggle" type="button" aria-label="Toggle filters">☰ Filters</button>
-      <input id="library-search" type="search" placeholder="Search library..." aria-label="Search library">
-      <button id="btn-add" type="button">Add Manga</button>
-    </section>
-
-    <section id="library-loading" class="library-loading" aria-label="Loading" hidden>
-      <div class="spinner" aria-hidden="true"></div>
-      <span>Loading library...</span>
-    </section>
-
-    <section id="empty-library" class="empty-library" aria-label="Library" hidden>
-      <h2>Library</h2>
-      <p>No manga in your library yet. Initialize local data or add your first manga to get started.</p>
-    </section>
-
-    <div id="library-grid" class="library-grid" aria-label="Comic library"></div>
-
-    <!-- Add Manga Modal (3-step wizard) -->
-    <div id="add-modal" class="modal" hidden>
-      <div class="modal-backdrop"></div>
-      <div class="modal-content wizard" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
-        <h2 id="add-modal-title">Add Manga</h2>
-
-        <!-- Step Indicators -->
-        <div class="wizard-steps" aria-label="Import steps">
-          <div class="wizard-step active" data-wizard-step="1">
-            <span class="wizard-step-num">1</span>
-            <span class="wizard-step-label">URL</span>
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <div class="top-bar-search">
+            <span class="search-icon">&#x1F50D;</span>
+            <input id="library-search" type="search" placeholder="Search library..." aria-label="Search library">
           </div>
-          <div class="wizard-step-connector"></div>
-          <div class="wizard-step" data-wizard-step="2">
-            <span class="wizard-step-num">2</span>
-            <span class="wizard-step-label">Preview</span>
+        </div>
+        <div class="top-bar-right">
+          <div id="api-status" class="api-status-pill">
+            <span class="status-dot"></span>
+            <span>Checking...</span>
           </div>
-          <div class="wizard-step-connector"></div>
-          <div class="wizard-step" data-wizard-step="3">
-            <span class="wizard-step-num">3</span>
-            <span class="wizard-step-label">Confirm</span>
+          <div class="top-bar-divider"></div>
+          <button id="btn-sidebar-toggle" class="btn-icon" type="button" aria-label="Toggle filters" title="Filters">
+            &#x2630;
+          </button>
+          <button id="btn-add" class="btn-primary" type="button">
+            <span>+</span>
+            <span>Add Manga</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-area">
+
+        <!-- Section Header -->
+        <div class="content-header">
+          <h2>My Library</h2>
+          <div class="content-filters">
+            <button class="btn-filter" id="btn-filter-status">
+              <span>&#x25BC;</span>
+              <span>All</span>
+            </button>
+            <button class="btn-filter" id="btn-filter-sort">
+              <span>&#x2195;</span>
+              <span>Recent</span>
+            </button>
           </div>
         </div>
 
-        <!-- Step 1: URL Input -->
-        <form id="add-step1" class="wizard-panel">
-          <label for="add-url">Manga URL</label>
-          <input id="add-url" type="url" placeholder="https://..." required>
-          <div id="add-source-detected" class="source-detected"></div>
-          <div id="add-source-capabilities" class="source-capabilities"></div>
-          <p id="add-error" class="add-error-msg" hidden></p>
-          <div class="modal-actions">
-            <button type="button" id="add-cancel" class="btn-secondary">Cancel</button>
-            <button type="button" id="btn-preview" class="btn-primary">Preview</button>
-          </div>
-        </form>
+        <!-- Loading -->
+        <section id="library-loading" class="library-loading" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <span>Loading library...</span>
+        </section>
 
-        <!-- Step 2: Preview -->
-        <div id="add-step2" class="wizard-panel" hidden>
-          <div id="preview-container" class="preview-container">
-            <div class="preview-header">
-              <img id="preview-cover" class="preview-cover" src="" alt="" hidden>
-              <div class="preview-placeholder" id="preview-placeholder" hidden></div>
-              <div class="preview-meta">
-                <h3 id="preview-title" class="preview-title"></h3>
-                <div id="preview-source" class="preview-source"></div>
-                <div id="preview-chapters" class="preview-chapters"></div>
-                <div id="preview-languages" class="preview-languages"></div>
-              </div>
-            </div>
-            <div id="preview-description" class="preview-description"></div>
-            <div id="preview-duplicate" class="preview-duplicate" hidden>
-              Already in your library.
-            </div>
-            <div id="preview-warnings" class="preview-warnings" hidden></div>
-          </div>
-          <p id="add-error-step2" class="add-error-msg" hidden></p>
-          <div class="modal-actions">
-            <button type="button" id="btn-back-to-url" class="btn-secondary">Back</button>
-            <button type="button" id="btn-confirm-step" class="btn-primary">Continue</button>
-          </div>
+        <!-- Empty State -->
+        <section id="empty-library" class="empty-library" hidden>
+          <h2>Library</h2>
+          <p>No manga in your library yet. Add your first manga to get started.</p>
+        </section>
+
+        <!-- Grid -->
+        <div id="library-grid" class="library-grid" aria-label="Comic library"></div>
+
+      </div>
+
+    </main>
+
+    <!-- Right Panel: Active Downloads -->
+    <aside id="downloads-panel" class="downloads-panel" hidden>
+      <div class="downloads-panel-header">
+        <h3>
+          <span>&#x2B07;</span>
+          Active Downloads
+        </h3>
+        <button id="downloads-panel-close" class="downloads-panel-close" aria-label="Close downloads panel">&times;</button>
+      </div>
+      <div id="downloads-list" class="downloads-list"></div>
+      <div class="downloads-panel-footer">
+        <button id="btn-pause-all">Pause All</button>
+        <button id="btn-clear-done">Clear Done</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Add Manga Modal (3-step wizard) -->
+  <div id="add-modal" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-content wizard" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+      <h2 id="add-modal-title">Add Manga</h2>
+
+      <!-- Step Indicators -->
+      <div class="wizard-steps" aria-label="Import steps">
+        <div class="wizard-step active" data-wizard-step="1">
+          <span class="wizard-step-num">1</span>
+          <span class="wizard-step-label">URL</span>
         </div>
+        <div class="wizard-step-connector"></div>
+        <div class="wizard-step" data-wizard-step="2">
+          <span class="wizard-step-num">2</span>
+          <span class="wizard-step-label">Preview</span>
+        </div>
+        <div class="wizard-step-connector"></div>
+        <div class="wizard-step" data-wizard-step="3">
+          <span class="wizard-step-num">3</span>
+          <span class="wizard-step-label">Confirm</span>
+        </div>
+      </div>
 
-        <!-- Step 3: Confirm -->
-        <form id="add-step3" class="wizard-panel" hidden>
-          <label for="add-title-override">Title Override (optional)</label>
-          <input id="add-title-override" type="text" placeholder="Custom title">
-          <label class="wizard-toggle">
-            <input type="checkbox" id="add-auto-download" checked>
-            <span class="wizard-toggle-label">Auto-download chapters after import</span>
-          </label>
-          <p id="add-error-step3" class="add-error-msg" hidden></p>
-          <div class="modal-actions">
-            <button type="button" id="btn-back-to-preview" class="btn-secondary">Back</button>
-            <button type="button" id="btn-confirm" class="btn-primary">Confirm</button>
+      <!-- Step 1: URL Input -->
+      <form id="add-step1" class="wizard-panel">
+        <label for="add-url">Manga URL</label>
+        <input id="add-url" type="url" placeholder="https://..." required>
+        <div id="add-source-detected" class="source-detected"></div>
+        <div id="add-source-capabilities" class="source-capabilities"></div>
+        <p id="add-error" class="add-error-msg" hidden></p>
+        <div class="modal-actions">
+          <button type="button" id="add-cancel" class="btn-secondary">Cancel</button>
+          <button type="button" id="btn-preview" class="btn-primary">Preview</button>
+        </div>
+      </form>
+
+      <!-- Step 2: Preview -->
+      <div id="add-step2" class="wizard-panel" hidden>
+        <div id="preview-container" class="preview-container">
+          <div class="preview-header">
+            <img id="preview-cover" class="preview-cover" src="" alt="" hidden>
+            <div class="preview-placeholder" id="preview-placeholder" hidden></div>
+            <div class="preview-meta">
+              <h3 id="preview-title" class="preview-title"></h3>
+              <div id="preview-source" class="preview-source"></div>
+              <div id="preview-chapters" class="preview-chapters"></div>
+              <div id="preview-languages" class="preview-languages"></div>
+            </div>
           </div>
-        </form>
+          <div id="preview-description" class="preview-description"></div>
+          <div id="preview-duplicate" class="preview-duplicate" hidden>
+            Already in your library.
+          </div>
+          <div id="preview-warnings" class="preview-warnings" hidden></div>
+        </div>
+        <p id="add-error-step2" class="add-error-msg" hidden></p>
+        <div class="modal-actions">
+          <button type="button" id="btn-back-to-url" class="btn-secondary">Back</button>
+          <button type="button" id="btn-confirm-step" class="btn-primary">Continue</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Confirm -->
+      <form id="add-step3" class="wizard-panel" hidden>
+        <label for="add-title-override">Title Override (optional)</label>
+        <input id="add-title-override" type="text" placeholder="Custom title">
+        <label class="wizard-toggle">
+          <input type="checkbox" id="add-auto-download" checked>
+          <span class="wizard-toggle-label">Auto-download chapters after import</span>
+        </label>
+        <p id="add-error-step3" class="add-error-msg" hidden></p>
+        <div class="modal-actions">
+          <button type="button" id="btn-back-to-preview" class="btn-secondary">Back</button>
+          <button type="button" id="btn-confirm" class="btn-primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Filter Sidebar (legacy, mobile) -->
+  <aside id="filter-sidebar" class="filter-sidebar" hidden>
+    <div class="sidebar-header">
+      <h2>Filters &amp; Sort</h2>
+      <button id="filter-sidebar-close" class="sidebar-close-btn" aria-label="Close sidebar">&times;</button>
+    </div>
+    <div class="sidebar-section">
+      <h3>Status</h3>
+      <div class="filter-chips" id="filter-status">
+        <button class="filter-chip active" data-status="all">All</button>
+        <button class="filter-chip" data-status="reading">Reading</button>
+        <button class="filter-chip" data-status="completed">Completed</button>
+        <button class="filter-chip" data-status="downloaded">Downloaded</button>
+        <button class="filter-chip" data-status="pending">Pending</button>
       </div>
     </div>
-
-    <!-- Context Menu -->
-    <div id="context-menu" class="context-menu" hidden>
-      <button class="context-menu-item" data-action="read">Read</button>
-      <button class="context-menu-item" data-action="download">Download</button>
-      <button class="context-menu-item" data-action="refresh">Refresh Metadata</button>
-      <button class="context-menu-item" data-action="mark-completed">Mark Completed</button>
-      <hr class="context-menu-divider">
-      <button class="context-menu-item context-menu-danger" data-action="delete">Delete</button>
+    <div class="sidebar-section">
+      <h3>Source</h3>
+      <div class="filter-chips" id="filter-source">
+        <button class="filter-chip active" data-source="all">All</button>
+      </div>
     </div>
-
-    <!-- Toast -->
-    <div id="toast" class="toast" hidden>
-      <span id="toast-msg"></span>
+    <div class="sidebar-section">
+      <h3>Sort</h3>
+      <select id="sidebar-sort" class="sidebar-select" aria-label="Sort library">
+        <option value="added">Recently Added</option>
+        <option value="title">Title A-Z</option>
+        <option value="read">Last Read</option>
+        <option value="progress">Download Progress</option>
+      </select>
     </div>
+    <div class="sidebar-footer">
+      <span id="sidebar-count" class="sidebar-count"></span>
+    </div>
+  </aside>
 
-  </main>
+  <!-- Context Menu -->
+  <div id="context-menu" class="context-menu" hidden>
+    <button class="context-menu-item" data-action="read">Read</button>
+    <button class="context-menu-item" data-action="download">Download</button>
+    <button class="context-menu-item" data-action="refresh">Refresh Metadata</button>
+    <button class="context-menu-item" data-action="mark-completed">Mark Completed</button>
+    <hr class="context-menu-divider">
+    <button class="context-menu-item context-menu-danger" data-action="delete">Delete</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" hidden>
+    <span id="toast-msg"></span>
+  </div>
 
   <script src="/static/js/api.js"></script>
   <script src="/static/js/app.js"></script>

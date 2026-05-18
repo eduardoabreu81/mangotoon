@@ -20,7 +20,8 @@
   var sidebarEl = document.getElementById("sidebar");
   var sidebarOverlay = document.getElementById("sidebar-overlay");
   var sidebarToggle = document.getElementById("btn-sidebar-toggle");
-  var sidebarClose = document.getElementById("sidebar-close");
+  var sidebarClose = document.getElementById("filter-sidebar-close");
+  var filterSidebar = document.getElementById("filter-sidebar");
   var sidebarSort = document.getElementById("sidebar-sort");
   var sidebarCount = document.getElementById("sidebar-count");
   var filterStatusEl = document.getElementById("filter-status");
@@ -199,7 +200,7 @@
   }
 
   function toggleSidebar() {
-    var open = sidebarEl && !sidebarEl.hidden;
+    var open = filterSidebar && !filterSidebar.hidden;
     if (open) {
       closeSidebar();
     } else {
@@ -208,13 +209,13 @@
   }
 
   function openSidebar() {
-    if (sidebarEl) sidebarEl.hidden = false;
+    if (filterSidebar) filterSidebar.hidden = false;
     if (sidebarOverlay) sidebarOverlay.hidden = false;
     document.body.classList.add("sidebar-open");
   }
 
   function closeSidebar() {
-    if (sidebarEl) sidebarEl.hidden = true;
+    if (filterSidebar) filterSidebar.hidden = true;
     if (sidebarOverlay) sidebarOverlay.hidden = true;
     document.body.classList.remove("sidebar-open");
   }
