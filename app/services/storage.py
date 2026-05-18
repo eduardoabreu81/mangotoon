@@ -154,7 +154,13 @@ def get_history_path() -> Path:
 
 def load_history() -> dict[str, Any]:
     _ensure_data_dir()
-    return read_json(get_history_path(), {"version": 1, "items": []})
+    data = read_json(get_history_path(), {"version": 1, "items": []})
+    # Guard against corrupted history files that are arrays instead of dicts
+    if isinstance(data, list):
+        return {"version": 1, "items": data}
+    if not isinstance(data, dict):
+        return {"version": 1, "items": []}
+    return data
 
 
 def save_history(data: dict[str, Any]) -> None:

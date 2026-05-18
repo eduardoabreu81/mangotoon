@@ -149,7 +149,11 @@
     });
 
   function continueReading(comicId, chapterId, page) {
-    window.location.href = "/reader?comic=" + encodeURIComponent(comicId);
+    var url = "/reader?comic=" + encodeURIComponent(comicId);
+    if (chapterId) {
+      url += "&chapter_id=" + encodeURIComponent(chapterId);
+    }
+    window.location.href = url;
   }
 
   function formatTimeAgo(isoString) {

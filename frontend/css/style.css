@@ -1992,7 +1992,7 @@ img {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast);
   border-bottom: 1px solid var(--border);
 }
 
@@ -2002,6 +2002,22 @@ img {
 
 .chapter-row:hover {
   background: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+.chapter-row.chapter-current {
+  background: rgba(155, 89, 182, 0.08);
+  border-left: 3px solid var(--accent);
+}
+
+.chapter-row.chapter-read {
+  opacity: 0.7;
+}
+
+.chapter-row.chapter-read .chapter-title-text {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+  text-decoration-thickness: 1px;
 }
 
 .chapter-status {
@@ -2100,6 +2116,16 @@ img {
   padding: 2px 6px;
   border-radius: 3px;
   white-space: nowrap;
+}
+
+.chapter-current-badge {
+  font-size: 0.65rem;
+  background: var(--accent-dim);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .chapter-actions {
@@ -2248,9 +2274,11 @@ img {
 .detail-description-text {
   font-size: 0.9rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
+  max-width: 640px;
   max-height: 150px;
   overflow-y: auto;
+  padding-right: 8px;
 }
 
 .detail-description-text[hidden] {
@@ -2305,17 +2333,29 @@ img {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
+  align-items: center;
 }
 
-.detail-actions .btn-primary,
+.detail-actions .btn-primary {
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 .detail-actions .btn-secondary {
-  padding: 10px 18px;
-  font-size: 0.875rem;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.detail-actions .btn-secondary:hover {
+  opacity: 1;
 }
 
 .detail-delete-btn {
   color: var(--danger) !important;
   border-color: rgba(231, 76, 60, 0.3) !important;
+  font-size: 0.75rem !important;
 }
 
 .detail-delete-btn:hover {

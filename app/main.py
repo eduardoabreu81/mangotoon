@@ -64,6 +64,10 @@ def create_app() -> FastAPI:
     async def history_page() -> FileResponse:
         return FileResponse(FRONTEND_DIR / "history.html")
 
+    @app.get("/favicon.ico")
+    async def favicon() -> FileResponse:
+        return FileResponse(FRONTEND_DIR / "favicon.svg")
+
     return app
 
 
