@@ -1727,6 +1727,8 @@ img {
   background: none;
   border: 1px solid transparent;
   color: var(--text-secondary);
+}
+
 .settings-form {
   margin-top: 16px;
 }

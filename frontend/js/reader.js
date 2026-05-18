@@ -33,6 +33,10 @@
   var saveBackoffUntil = 0;
   var saveFailCount = 0;
 
+  // Phase 17.8: Page load token to prevent race conditions
+  var pageLoadToken = 0;
+  var preloadTimer = null;
+
   document.addEventListener("DOMContentLoaded", function () {
     init();
   });
@@ -79,8 +83,6 @@
       updateModeButtonLabel(modeBtn);
       applyReaderMode();
     });
-
-    applyReaderMode();
   }
 
   function updateModeButtonLabel(btn) {
@@ -233,7 +235,7 @@
      ============================================================ */
 
   function loadReaderData(urlChapterId) {
-    showLoading(true);
+    showDataLoading(true);
     hideError();
 
     API.get("/reader/" + encodeURIComponent(comicId) + "/data")
@@ -291,7 +293,7 @@
         showError("Failed to load reader data.");
       })
       .finally(function () {
-        showLoading(false);
+        showDataLoading(false);
       });
   }
 
@@ -495,6 +497,11 @@
     var loading = document.getElementById("reader-loading");
     var errorEl = document.getElementById("reader-error");
 
+    // Increment token to invalidate old loads
+    pageLoadToken++;
+    var myToken = pageLoadToken;
+    var loadStart = performance.now();
+
     img.hidden = true;
     loading.hidden = false;
     if (errorEl) errorEl.hidden = true;
@@ -504,38 +511,83 @@
 
     var src = buildPageSrc(currentPage);
 
+    console.debug("[reader] loadPage start | page=" + currentPage + " | src=" + src + " | token=" + myToken);
+
     // Check cache first
     if (preloadCache[src] && preloadCache[src].complete) {
-      img.src = src;
-      img.hidden = false;
-      loading.hidden = true;
-      applyZoom();
-      applyFitMode();
-      scheduleSaveProgress();
-      checkChapterComplete();
-      preloadNeighbors();
+      var cached = preloadCache[src];
+      console.debug("[reader] cache hit | token=" + myToken + " | elapsed=" + (performance.now() - loadStart).toFixed(1) + "ms");
+      renderLoadedImage(img, loading, errorEl, src, cached.naturalWidth, cached.naturalHeight, myToken, loadStart);
       return;
     }
 
+    // Check if already loading
+    if (preloadCache[src] && !preloadCache[src].complete) {
+      console.debug("[reader] already loading | token=" + myToken + " | waiting...");
+      var existingImg = preloadCache[src];
+      existingImg.onload = function () {
+        if (myToken !== pageLoadToken) {
+          console.debug("[reader] stale load ignored | myToken=" + myToken + " | current=" + pageLoadToken);
+          return;
+        }
+        renderLoadedImage(img, loading, errorEl, src, existingImg.naturalWidth, existingImg.naturalHeight, myToken, loadStart);
+      };
+      existingImg.onerror = function () {
+        if (myToken !== pageLoadToken) return;
+        renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
+      };
+      return;
+    }
+
+    // Start new load
     var newImg = new Image();
+    preloadCache[src] = newImg;
+
     newImg.onload = function () {
-      preloadCache[src] = newImg;
-      img.src = src;
-      img.hidden = false;
-      loading.hidden = true;
-      if (errorEl) errorEl.hidden = true;
-      applyZoom();
-      applyFitMode();
-      scheduleSaveProgress();
-      checkChapterComplete();
-      preloadNeighbors();
+      if (myToken !== pageLoadToken) {
+        console.debug("[reader] stale onload ignored | myToken=" + myToken + " | current=" + pageLoadToken);
+        return;
+      }
+      renderLoadedImage(img, loading, errorEl, src, newImg.naturalWidth, newImg.naturalHeight, myToken, loadStart);
     };
+
     newImg.onerror = function () {
-      loading.hidden = true;
-      img.hidden = true;
-      showPageError("Page " + currentPage + " could not be loaded.");
+      if (myToken !== pageLoadToken) {
+        console.debug("[reader] stale onerror ignored | myToken=" + myToken + " | current=" + pageLoadToken);
+        return;
+      }
+      renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
     };
+
     newImg.src = src;
+  }
+
+  function renderLoadedImage(img, loading, errorEl, src, naturalWidth, naturalHeight, token, loadStart) {
+    var elapsed = performance.now() - loadStart;
+    console.debug("[reader] loadPage end | token=" + token + " | elapsed=" + elapsed.toFixed(1) + "ms | dims=" + naturalWidth + "x" + naturalHeight);
+
+    img.src = src;
+    img.hidden = false;
+    loading.hidden = true;
+    if (errorEl) errorEl.hidden = true;
+    applyZoom();
+    applyFitMode();
+    scheduleSaveProgress();
+    checkChapterComplete();
+    schedulePreload();
+  }
+
+  function renderLoadError(loading, img, msg) {
+    loading.hidden = true;
+    img.hidden = true;
+    showPageError(msg);
+  }
+
+  function schedulePreload() {
+    // Cancel any pending preload
+    clearTimeout(preloadTimer);
+    // Defer preload so it doesn't compete with manual navigation
+    preloadTimer = setTimeout(preloadNeighbors, 100);
   }
 
   function preloadNeighbors() {
@@ -1065,6 +1117,14 @@
   function updateProgressBar() {
     var pct = totalPages > 0 ? (currentPage / totalPages) * 100 : 0;
     document.getElementById("reader-progress-fill").style.width = pct + "%";
+  }
+
+  function showDataLoading(show) {
+    // Only show/hide the initial data loading overlay, not the page loading
+    var overlay = document.getElementById("reader-data-loading");
+    if (overlay) {
+      overlay.hidden = !show;
+    }
   }
 
   function showLoading(show) {
