@@ -1,9 +1,11 @@
 // MangoToon Settings Page
+// Phase 17.8: Reader, Comic and Settings UX Overhaul
 
 (function () {
   "use strict";
 
-  var form = document.getElementById("settings-form");
+  var saveBtn = document.getElementById("settings-save");
+  var cancelBtn = document.getElementById("settings-cancel");
   var toast = document.getElementById("settings-toast");
   var toastMsg = document.getElementById("settings-toast-msg");
   var toastTimer = null;
@@ -13,16 +15,20 @@
   var rangeAdvanceDelay = document.getElementById("set-reader-auto-advance-delay");
   var rangeAdvanceDelayLabel = document.getElementById("set-delay-label");
 
+  var originalSettings = null;
+
   document.addEventListener("DOMContentLoaded", function () {
     init();
   });
 
   function init() {
-    form.addEventListener("submit", onSave);
+    if (saveBtn) {
+      saveBtn.addEventListener("click", onSave);
+    }
 
-    document.getElementById("settings-cancel").addEventListener("click", function () {
-      window.location.href = "/";
-    });
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", onCancel);
+    }
 
     if (rangeConcurrency && rangeConcurrencyLabel) {
       rangeConcurrency.addEventListener("input", function () {
@@ -32,7 +38,7 @@
 
     if (rangeAdvanceDelay && rangeAdvanceDelayLabel) {
       rangeAdvanceDelay.addEventListener("input", function () {
-        rangeAdvanceDelayLabel.textContent = rangeAdvanceDelay.value;
+        rangeAdvanceDelayLabel.textContent = rangeAdvanceDelay.value + "s";
       });
     }
 
@@ -42,11 +48,12 @@
   function loadSettings() {
     API.get("/settings")
       .then(function (settings) {
+        originalSettings = JSON.parse(JSON.stringify(settings));
         populateForm(settings);
       })
       .catch(function (err) {
         console.error("Failed to load settings:", err);
-        showToast("Could not load settings.", "error");
+        showToast("Could not load settings. Please try again.", "error");
       });
   }
 
@@ -58,7 +65,7 @@
     setValue("set-library-path", s.library_path);
     setValue("set-reader-default-fit", s.reader_default_fit);
     setValue("set-reader-auto-advance", s.reader_auto_advance);
-    setRange("set-reader-auto-advance-delay", s.reader_auto_advance_delay, rangeAdvanceDelayLabel);
+    setRange("set-reader-auto-advance-delay", s.reader_auto_advance_delay, rangeAdvanceDelayLabel, true);
     setValue("set-reader-progress-bar", s.reader_show_progress_bar);
     setValue("set-theme", s.theme);
     setValue("set-language", s.language);
@@ -74,11 +81,22 @@
     }
   }
 
-  function setRange(id, value, labelEl) {
+  function setRange(id, value, labelEl, addSuffix) {
     var el = document.getElementById(id);
     if (!el) return;
     el.value = value !== undefined ? value : el.getAttribute("min") || 0;
-    if (labelEl) labelEl.textContent = el.value;
+    if (labelEl) {
+      labelEl.textContent = el.value + (addSuffix ? "s" : "");
+    }
+  }
+
+  function onCancel() {
+    if (originalSettings) {
+      populateForm(originalSettings);
+      showToast("Settings restored to saved values.");
+    } else {
+      window.location.href = "/";
+    }
   }
 
   function collectForm() {
@@ -109,20 +127,18 @@
     return el ? el.checked : false;
   }
 
-  function onSave(e) {
-    e.preventDefault();
-
-    var submitBtn = form.querySelector('[type="submit"]');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Saving...";
+  function onSave() {
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Saving...";
     }
 
     var payload = collectForm();
 
     API.post("/settings", payload)
       .then(function () {
-        showToast("Settings saved.");
+        originalSettings = JSON.parse(JSON.stringify(payload));
+        showToast("Settings saved successfully.");
       })
       .catch(function (err) {
         var msg = "Failed to save settings.";
@@ -134,9 +150,9 @@
         showToast(msg, "error");
       })
       .finally(function () {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Save Settings";
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save Settings";
         }
       });
   }
@@ -146,11 +162,11 @@
     clearTimeout(toastTimer);
 
     toastMsg.textContent = msg;
-    toast.className = "settings-toast" + (type === "error" ? " settings-toast-error" : "");
+    toast.className = "toast" + (type === "error" ? " toast-error" : "");
     toast.hidden = false;
 
     toastTimer = setTimeout(function () {
       toast.hidden = true;
-    }, 2500);
+    }, 3500);
   }
 })();

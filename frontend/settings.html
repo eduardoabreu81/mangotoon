@@ -49,10 +49,10 @@
       <!-- Top Bar -->
       <header class="top-bar">
         <div class="top-bar-left">
-          <h2 style="font-size:1.25rem;font-weight:700;">Settings</h2>
+          <h2 class="top-bar-title">Settings</h2>
         </div>
         <div class="top-bar-right">
-          <a href="/" class="btn-secondary" style="text-decoration:none;display:flex;align-items:center;gap:6px;">
+          <a href="/" class="btn-secondary top-bar-back">
             <span>&#x2190;</span>
             <span>Back to Library</span>
           </a>
@@ -62,116 +62,203 @@
       <!-- Content Area -->
       <div class="content-area">
 
-        <form id="settings-form" class="settings-form">
+        <div class="settings-page">
 
           <!-- Downloads -->
-          <fieldset class="settings-section">
-            <legend>Downloads</legend>
+          <section class="settings-card">
+            <div class="settings-card-header">
+              <h3>Downloads</h3>
+              <p>Configure how MangoToon downloads manga chapters</p>
+            </div>
+            <div class="settings-card-body">
 
-            <label class="settings-row settings-toggle">
-              <span>Auto-start downloads</span>
-              <input type="checkbox" id="set-download-auto-start" name="download_auto_start">
-              <span class="toggle-slider"></span>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-download-auto-start">Auto-start downloads</label>
+                  <span class="setting-description">Automatically begin downloading when a manga is added</span>
+                </div>
+                <div class="setting-control">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="set-download-auto-start" name="download_auto_start">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
 
-            <label class="settings-row" for="set-download-default-chapters">
-              <span>Default chapters</span>
-              <select id="set-download-default-chapters" name="download_default_chapters">
-                <option value="all">All chapters</option>
-                <option value="unread">Unread only</option>
-                <option value="none">None (manual)</option>
-              </select>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-download-default-chapters">Default chapters</label>
+                  <span class="setting-description">Which chapters to download by default</span>
+                </div>
+                <div class="setting-control">
+                  <select id="set-download-default-chapters" name="download_default_chapters" class="setting-select">
+                    <option value="all">All chapters</option>
+                    <option value="unread">Unread only</option>
+                    <option value="none">None (manual)</option>
+                  </select>
+                </div>
+              </div>
 
-            <label class="settings-row" for="set-download-concurrency">
-              <span>Download concurrency</span>
-              <input type="range" id="set-download-concurrency" name="download_concurrency" min="1" max="5" step="1">
-              <span id="set-download-concurrency-label" class="settings-value">2</span>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-download-concurrency">Download concurrency</label>
+                  <span class="setting-description">How many chapters to download simultaneously</span>
+                </div>
+                <div class="setting-control setting-control-range">
+                  <input type="range" id="set-download-concurrency" name="download_concurrency" min="1" max="5" step="1" class="setting-range">
+                  <span id="set-download-concurrency-label" class="setting-range-value">2</span>
+                </div>
+              </div>
 
-            <label class="settings-row" for="set-rate-limit">
-              <span>Rate limit (seconds)</span>
-              <input type="number" id="set-rate-limit" name="rate_limit_per_domain" min="0.1" max="10" step="0.1">
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-rate-limit">Rate limit (seconds)</label>
+                  <span class="setting-description">Delay between requests to the same domain</span>
+                </div>
+                <div class="setting-control">
+                  <input type="number" id="set-rate-limit" name="rate_limit_per_domain" min="0.1" max="10" step="0.1" class="setting-input setting-input-number">
+                </div>
+              </div>
 
-            <label class="settings-row" for="set-library-path">
-              <span>Library path</span>
-              <input type="text" id="set-library-path" name="library_path">
-            </label>
-          </fieldset>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-library-path">Library path</label>
+                  <span class="setting-description">Where downloaded manga are stored</span>
+                </div>
+                <div class="setting-control">
+                  <input type="text" id="set-library-path" name="library_path" class="setting-input">
+                </div>
+              </div>
+
+            </div>
+          </section>
 
           <!-- Reader -->
-          <fieldset class="settings-section">
-            <legend>Reader</legend>
+          <section class="settings-card">
+            <div class="settings-card-header">
+              <h3>Reader</h3>
+              <p>Customize your reading experience</p>
+            </div>
+            <div class="settings-card-body">
 
-            <label class="settings-row" for="set-reader-default-fit">
-              <span>Default fit mode</span>
-              <select id="set-reader-default-fit" name="reader_default_fit">
-                <option value="fit-screen">Fit screen</option>
-                <option value="fit-width">Fit width</option>
-                <option value="fit-height">Fit height</option>
-                <option value="original">Original size</option>
-              </select>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-reader-default-fit">Default fit mode</label>
+                  <span class="setting-description">How pages are sized when opening the reader</span>
+                </div>
+                <div class="setting-control">
+                  <select id="set-reader-default-fit" name="reader_default_fit" class="setting-select">
+                    <option value="fit-screen">Fit screen</option>
+                    <option value="fit-width">Fit width</option>
+                    <option value="fit-height">Fit height</option>
+                    <option value="original">Original size</option>
+                  </select>
+                </div>
+              </div>
 
-            <label class="settings-row settings-toggle">
-              <span>Auto-advance chapters</span>
-              <input type="checkbox" id="set-reader-auto-advance" name="reader_auto_advance">
-              <span class="toggle-slider"></span>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-reader-auto-advance">Auto-advance chapters</label>
+                  <span class="setting-description">Automatically proceed to the next chapter when finished</span>
+                </div>
+                <div class="setting-control">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="set-reader-auto-advance" name="reader_auto_advance">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
 
-            <label class="settings-row" for="set-reader-auto-advance-delay">
-              <span>Auto-advance delay (seconds)</span>
-              <input type="range" id="set-reader-auto-advance-delay" name="reader_auto_advance_delay" min="1" max="120" step="1">
-              <span id="set-delay-label" class="settings-value">4</span>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-reader-auto-advance-delay">Auto-advance delay</label>
+                  <span class="setting-description">Seconds to wait before advancing to the next chapter</span>
+                </div>
+                <div class="setting-control setting-control-range">
+                  <input type="range" id="set-reader-auto-advance-delay" name="reader_auto_advance_delay" min="1" max="120" step="1" class="setting-range">
+                  <span id="set-delay-label" class="setting-range-value">4s</span>
+                </div>
+              </div>
 
-            <label class="settings-row settings-toggle">
-              <span>Show progress bar</span>
-              <input type="checkbox" id="set-reader-progress-bar" name="reader_show_progress_bar">
-              <span class="toggle-slider"></span>
-            </label>
-          </fieldset>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-reader-progress-bar">Show progress bar</label>
+                  <span class="setting-description">Display reading progress at the bottom of the reader</span>
+                </div>
+                <div class="setting-control">
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="set-reader-progress-bar" name="reader_show_progress_bar">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </section>
 
           <!-- Appearance -->
-          <fieldset class="settings-section">
-            <legend>Appearance</legend>
+          <section class="settings-card">
+            <div class="settings-card-header">
+              <h3>Appearance</h3>
+              <p>Visual preferences for the app</p>
+            </div>
+            <div class="settings-card-body">
 
-            <label class="settings-row" for="set-theme">
-              <span>Theme</span>
-              <select id="set-theme" name="theme">
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-                <option value="auto">Auto</option>
-              </select>
-            </label>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-theme">Theme</label>
+                  <span class="setting-description">Choose your preferred color scheme</span>
+                </div>
+                <div class="setting-control">
+                  <select id="set-theme" name="theme" class="setting-select">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </div>
+              </div>
 
-            <label class="settings-row" for="set-language">
-              <span>Language</span>
-              <select id="set-language" name="language">
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
-                <option value="de">Deutsch</option>
-                <option value="ja">日本語</option>
-                <option value="pt-BR">Português (BR)</option>
-              </select>
-            </label>
-          </fieldset>
+              <div class="setting-item">
+                <div class="setting-info">
+                  <label class="setting-label" for="set-language">Language</label>
+                  <span class="setting-description">Interface language</span>
+                </div>
+                <div class="setting-control">
+                  <select id="set-language" name="language" class="setting-select">
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="ja">日本語</option>
+                    <option value="pt-BR">Português (BR)</option>
+                  </select>
+                </div>
+              </div>
 
-          <!-- AI Search (Planned) -->
-          <fieldset class="settings-section" style="opacity:0.7;">
-            <legend>AI Search <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">(Coming Soon)</span></legend>
-            <p style="font-size:0.85rem;color:var(--text-muted);padding:8px 0;">
-              Intelligent manga discovery and recommendations. This feature is planned for a future release.
-            </p>
-          </fieldset>
+            </div>
+          </section>
 
-          <div class="settings-actions">
+          <!-- AI Search (Coming Soon) -->
+          <section class="settings-card planned-card">
+            <div class="settings-card-header">
+              <h3>AI Search</h3>
+              <span class="planned-badge">Coming Soon</span>
+            </div>
+            <div class="settings-card-body">
+              <p class="planned-description">
+                Intelligent manga discovery and recommendations powered by AI.
+                This feature is planned for a future release and is not yet available.
+              </p>
+            </div>
+          </section>
+
+          <!-- Actions -->
+          <div class="settings-actions-bar">
             <button type="button" id="settings-cancel" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary">Save Settings</button>
+            <button type="button" id="settings-save" class="btn-primary">Save Settings</button>
           </div>
-        </form>
+
+        </div>
 
       </div>
 
