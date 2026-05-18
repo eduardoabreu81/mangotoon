@@ -1,5 +1,6 @@
 """Offline reader endpoints."""
 
+import logging
 import re
 from datetime import UTC, datetime
 
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 from app.services import storage
 
 router = APIRouter(prefix="/reader", tags=["reader"])
+logger = logging.getLogger(__name__)
 
 SAFE_ID_RE = re.compile(r"^[\w-]+$")
 
@@ -161,7 +163,19 @@ async def save_progress(comic_id: str, payload: SaveProgressRequest) -> dict:
             completed.append(payload.chapter_id)
 
     storage.save_comic_metadata(comic_id, meta)
-    _update_history(comic_id, meta, payload.chapter_id, payload.page)
+
+    # Isolate history update — don't let it break progress saving
+    try:
+        _update_history(comic_id, meta, payload.chapter_id, payload.page)
+    except Exception as exc:
+        logger.warning(
+            "History update failed for comic=%s chapter=%s page=%s: %s",
+            comic_id,
+            payload.chapter_id,
+            payload.page,
+            exc,
+        )
+
     return {"ok": True, "progress": progress}
 
 
@@ -173,6 +187,8 @@ def _update_history(comic_id: str, meta: dict, chapter_id: str, page: int) -> No
         (chapter for chapter in meta.get("chapters", []) if chapter.get("chapter_id") == chapter_id),
         {},
     )
+    # Guard against None chapter_info
+    chapter_number = chapter_info.get("chapter_number", "") if chapter_info else ""
     items.insert(
         0,
         {
@@ -180,7 +196,7 @@ def _update_history(comic_id: str, meta: dict, chapter_id: str, page: int) -> No
             "title": meta.get("title", ""),
             "cover_path": str(storage.COMICS_DIR / comic_id / "cover.jpg"),
             "chapter_id": chapter_id,
-            "chapter_number": chapter_info.get("chapter_number", ""),
+            "chapter_number": chapter_number,
             "page_number": page,
             "last_read_at": datetime.now(UTC).isoformat(),
         },

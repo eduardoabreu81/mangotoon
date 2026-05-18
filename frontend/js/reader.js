@@ -29,6 +29,10 @@
   var readerMode = "paged"; // default
   var modeToggleInitialized = false;
 
+  // Progress save backoff
+  var saveBackoffUntil = 0;
+  var saveFailCount = 0;
+
   document.addEventListener("DOMContentLoaded", function () {
     init();
   });
@@ -36,6 +40,7 @@
   function init() {
     var params = new URLSearchParams(window.location.search);
     comicId = params.get("comic");
+    var urlChapterId = params.get("chapter_id");
 
     if (!comicId) {
       showError("No manga selected.");
@@ -48,7 +53,7 @@
       readerMode = savedMode;
     }
 
-    loadReaderData();
+    loadReaderData(urlChapterId);
     loadChapterList();
     setupControls();
     setupAutoHide();
@@ -227,7 +232,7 @@
      DATA LOADING
      ============================================================ */
 
-  function loadReaderData() {
+  function loadReaderData(urlChapterId) {
     showLoading(true);
     hideError();
 
@@ -241,17 +246,37 @@
           return;
         }
 
-        var progress = data.progress;
-        if (progress && progress.chapter_id) {
-          var foundIdx = -1;
+        // Priority 1: chapter_id from URL query string
+        var foundIdx = -1;
+        if (urlChapterId) {
           for (var i = 0; i < chapters.length; i++) {
-            if (chapters[i].chapter_id === progress.chapter_id) {
+            if (chapters[i].chapter_id === urlChapterId) {
               foundIdx = i;
               break;
             }
           }
-          currentChapterIdx = foundIdx >= 0 ? foundIdx : 0;
-          currentPage = progress.page || 1;
+        }
+
+        // Priority 2: saved reading progress
+        if (foundIdx < 0) {
+          var progress = data.progress;
+          if (progress && progress.chapter_id) {
+            for (var j = 0; j < chapters.length; j++) {
+              if (chapters[j].chapter_id === progress.chapter_id) {
+                foundIdx = j;
+                break;
+              }
+            }
+            if (foundIdx >= 0) {
+              currentPage = progress.page || 1;
+            }
+          }
+        }
+
+        // Priority 3: first downloaded chapter
+        currentChapterIdx = foundIdx >= 0 ? foundIdx : 0;
+        if (foundIdx < 0) {
+          currentPage = 1;
         }
 
         document.title = "MangoToon — " + (data.title || "Reader");
@@ -626,6 +651,11 @@
   }
 
   function saveProgress() {
+    var now = Date.now();
+    if (now < saveBackoffUntil) {
+      return; // Skip save during backoff
+    }
+
     var chapter = chapters[currentChapterIdx];
     if (!chapter) return;
     var completed = currentPage >= totalPages;
@@ -634,9 +664,22 @@
       page: currentPage,
       total_pages: totalPages,
       completed: completed,
-    }).catch(function (err) {
-      console.warn("Progress save failed:", err);
-    });
+    })
+      .then(function () {
+        saveFailCount = 0;
+        saveBackoffUntil = 0;
+      })
+      .catch(function (err) {
+        saveFailCount++;
+        var backoffMs = Math.min(10000, saveFailCount * 2000);
+        saveBackoffUntil = Date.now() + backoffMs;
+        if (saveFailCount === 1 || saveFailCount % 5 === 0) {
+          console.warn(
+            "Progress save failed (backoff " + backoffMs + "ms):",
+            err
+          );
+        }
+      });
   }
 
   /* ============================================================
