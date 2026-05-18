@@ -1,4 +1,5 @@
 // MangoToon Reader
+// Phase 17.8: Reader and Comic UX Overhaul
 
 (function () {
   "use strict";
@@ -18,6 +19,16 @@
   var drawerOpen = false;
   var drawerLoading = false;
 
+  // Phase 17.8: Preload cache
+  var preloadCache = {}; // src -> Image object
+  var preloadQueue = [];
+  var maxPreloadAhead = 3;
+  var maxPreloadBehind = 1;
+
+  // Phase 17.8: Reader mode (paged | vertical)
+  var readerMode = "paged"; // default
+  var modeToggleInitialized = false;
+
   document.addEventListener("DOMContentLoaded", function () {
     init();
   });
@@ -31,11 +42,190 @@
       return;
     }
 
+    // Phase 17.8: Load reader mode from localStorage
+    var savedMode = localStorage.getItem("mangotoon_reader_mode");
+    if (savedMode === "paged" || savedMode === "vertical") {
+      readerMode = savedMode;
+    }
+
     loadReaderData();
     loadChapterList();
     setupControls();
     setupAutoHide();
+    setupModeToggle();
   }
+
+  /* ============================================================
+     MODE TOGGLE (Phase 17.8)
+     ============================================================ */
+
+  function setupModeToggle() {
+    if (modeToggleInitialized) return;
+    modeToggleInitialized = true;
+
+    var modeBtn = document.getElementById("btn-reader-mode");
+    if (!modeBtn) return;
+
+    updateModeButtonLabel(modeBtn);
+
+    modeBtn.addEventListener("click", function () {
+      readerMode = readerMode === "paged" ? "vertical" : "paged";
+      localStorage.setItem("mangotoon_reader_mode", readerMode);
+      updateModeButtonLabel(modeBtn);
+      applyReaderMode();
+    });
+
+    applyReaderMode();
+  }
+
+  function updateModeButtonLabel(btn) {
+    btn.textContent = readerMode === "paged" ? "\u25A6" : "\u25A1";
+    btn.title = readerMode === "paged" ? "Switch to vertical mode" : "Switch to paged mode";
+  }
+
+  function applyReaderMode() {
+    var main = document.getElementById("reader-main");
+    var img = document.getElementById("reader-img");
+    var verticalContainer = document.getElementById("reader-vertical-container");
+    var zones = document.querySelectorAll(".reader-zone");
+    var bottomBar = document.getElementById("reader-bottom");
+
+    if (readerMode === "vertical") {
+      // Hide paged elements
+      if (img) img.hidden = true;
+      zones.forEach(function (z) { z.hidden = true; });
+      if (bottomBar) bottomBar.hidden = true;
+
+      // Show vertical container
+      if (!verticalContainer) {
+        verticalContainer = document.createElement("div");
+        verticalContainer.id = "reader-vertical-container";
+        verticalContainer.className = "reader-vertical-container";
+        main.appendChild(verticalContainer);
+      }
+      verticalContainer.hidden = false;
+
+      renderVerticalMode();
+    } else {
+      // Hide vertical
+      if (verticalContainer) verticalContainer.hidden = true;
+
+      // Show paged elements
+      zones.forEach(function (z) { z.hidden = false; });
+      if (bottomBar) bottomBar.hidden = false;
+
+      // Show current page
+      if (img) {
+        img.hidden = false;
+        loadPage();
+      }
+    }
+  }
+
+  function renderVerticalMode() {
+    var container = document.getElementById("reader-vertical-container");
+    if (!container) return;
+
+    var chapter = chapters[currentChapterIdx];
+    if (!chapter) return;
+
+    container.innerHTML = "";
+
+    var pageCount = chapter.pages || 0;
+    for (var i = 1; i <= pageCount; i++) {
+      var wrapper = document.createElement("div");
+      wrapper.className = "reader-vertical-page";
+      wrapper.dataset.page = i;
+
+      var img = document.createElement("img");
+      img.className = "reader-vertical-img";
+      img.alt = "Page " + i;
+      img.dataset.page = i;
+      img.dataset.src = buildPageSrc(i);
+      img.loading = "lazy";
+
+      // Loading placeholder
+      var placeholder = document.createElement("div");
+      placeholder.className = "reader-vertical-placeholder";
+      placeholder.textContent = "Page " + i;
+
+      wrapper.appendChild(placeholder);
+      wrapper.appendChild(img);
+      container.appendChild(wrapper);
+
+      // Intersection observer for lazy loading + progress tracking
+      observeVerticalPage(wrapper, img, placeholder);
+    }
+
+    // Preload first few images immediately
+    for (var j = 1; j <= Math.min(3, pageCount); j++) {
+      preloadVerticalPage(j);
+    }
+  }
+
+  function observeVerticalPage(wrapper, img, placeholder) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var pageNum = parseInt(img.dataset.page);
+          img.src = img.dataset.src;
+          img.onload = function () {
+            placeholder.hidden = true;
+            img.classList.add("loaded");
+          };
+          img.onerror = function () {
+            placeholder.textContent = "Failed to load page " + pageNum;
+            placeholder.classList.add("error");
+          };
+
+          // Update progress when page is visible
+          currentPage = pageNum;
+          updatePageIndicator();
+          updateProgressBar();
+          scheduleSaveProgress();
+
+          // Preload next pages
+          preloadVerticalRange(pageNum, 3);
+
+          observer.unobserve(wrapper);
+        }
+      });
+    }, { rootMargin: "200px" });
+
+    observer.observe(wrapper);
+  }
+
+  function preloadVerticalPage(pageNum) {
+    var src = buildPageSrc(pageNum);
+    if (preloadCache[src]) return;
+
+    var img = new Image();
+    img.src = src;
+    preloadCache[src] = img;
+  }
+
+  function preloadVerticalRange(fromPage, count) {
+    for (var i = 0; i < count; i++) {
+      var page = fromPage + i;
+      if (page > totalPages) break;
+      preloadVerticalPage(page);
+    }
+  }
+
+  function buildPageSrc(pageNum) {
+    var chapter = chapters[currentChapterIdx];
+    if (!chapter) return "";
+    return "/api/reader/" +
+      encodeURIComponent(comicId) +
+      "/" +
+      encodeURIComponent(chapter.chapter_id) +
+      "/" +
+      pageNum;
+  }
+
+  /* ============================================================
+     DATA LOADING
+     ============================================================ */
 
   function loadReaderData() {
     showLoading(true);
@@ -66,7 +256,11 @@
 
         document.title = "MangoToon — " + (data.title || "Reader");
         renderChapterSelect();
-        showChapter(currentChapterIdx, currentPage);
+        if (readerMode === "paged") {
+          showChapter(currentChapterIdx, currentPage);
+        } else {
+          showChapter(currentChapterIdx, 1);
+        }
       })
       .catch(function () {
         showError("Failed to load reader data.");
@@ -87,6 +281,10 @@
       });
   }
 
+  /* ============================================================
+     AUTO-HIDE UI
+     ============================================================ */
+
   function setupAutoHide() {
     var main = document.getElementById("reader-main");
     if (!main) return;
@@ -106,18 +304,25 @@
 
     clearTimeout(autoHideTimer);
     autoHideTimer = setTimeout(function () {
+      if (readerMode === "vertical") return; // Don't auto-hide in vertical mode
       if (top) top.classList.add("reader-hidden");
       if (bottom) bottom.classList.add("reader-hidden");
       uiVisible = false;
     }, 3000);
   }
 
+  /* ============================================================
+     CONTROLS SETUP
+     ============================================================ */
+
   function setupControls() {
     document.getElementById("zone-prev").addEventListener("click", function () {
+      if (readerMode !== "paged") return;
       goToPage(currentPage - 1);
       resetAutoHide();
     });
     document.getElementById("zone-next").addEventListener("click", function () {
+      if (readerMode !== "paged") return;
       goToPage(currentPage + 1);
       resetAutoHide();
     });
@@ -135,9 +340,7 @@
     document.getElementById("btn-fullscreen").addEventListener("click", toggleFullscreen);
 
     document.getElementById("btn-chapter-drawer").addEventListener("click", toggleChapterDrawer);
-
     document.getElementById("btn-drawer-close").addEventListener("click", closeChapterDrawer);
-
     document.getElementById("reader-drawer-overlay").addEventListener("click", closeChapterDrawer);
 
     document.getElementById("btn-next-chapter-overlay").addEventListener("click", function () {
@@ -153,6 +356,18 @@
       if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         toggleChapterDrawer();
+        return;
+      }
+
+      if (readerMode === "vertical") {
+        // In vertical mode, only handle drawer and escape
+        if (e.key === "Escape") {
+          if (drawerOpen) {
+            closeChapterDrawer();
+          } else {
+            window.location.href = "/";
+          }
+        }
         return;
       }
 
@@ -209,6 +424,10 @@
     });
   }
 
+  /* ============================================================
+     CHAPTER / PAGE NAVIGATION
+     ============================================================ */
+
   function showChapter(idx, page) {
     currentChapterIdx = idx;
     var chapter = chapters[idx];
@@ -226,9 +445,22 @@
     if (sel) sel.value = chapter.chapter_id;
 
     hideChapterComplete();
-    loadPage();
+
+    if (readerMode === "vertical") {
+      renderVerticalMode();
+      // Scroll to top
+      var container = document.getElementById("reader-vertical-container");
+      if (container) container.scrollTop = 0;
+    } else {
+      loadPage();
+    }
+
     renderChapterDrawer();
   }
+
+  /* ============================================================
+     PAGE LOADING WITH PRELOAD (Phase 17.8)
+     ============================================================ */
 
   function loadPage() {
     var chapter = chapters[currentChapterIdx];
@@ -236,23 +468,19 @@
 
     var img = document.getElementById("reader-img");
     var loading = document.getElementById("reader-loading");
+    var errorEl = document.getElementById("reader-error");
 
     img.hidden = true;
     loading.hidden = false;
+    if (errorEl) errorEl.hidden = true;
 
     updatePageIndicator();
     updateProgressBar();
 
-    var src =
-      "/api/reader/" +
-      encodeURIComponent(comicId) +
-      "/" +
-      encodeURIComponent(chapter.chapter_id) +
-      "/" +
-      currentPage;
+    var src = buildPageSrc(currentPage);
 
-    var newImg = new Image();
-    newImg.onload = function () {
+    // Check cache first
+    if (preloadCache[src] && preloadCache[src].complete) {
       img.src = src;
       img.hidden = false;
       loading.hidden = true;
@@ -260,13 +488,81 @@
       applyFitMode();
       scheduleSaveProgress();
       checkChapterComplete();
+      preloadNeighbors();
+      return;
+    }
+
+    var newImg = new Image();
+    newImg.onload = function () {
+      preloadCache[src] = newImg;
+      img.src = src;
+      img.hidden = false;
+      loading.hidden = true;
+      if (errorEl) errorEl.hidden = true;
+      applyZoom();
+      applyFitMode();
+      scheduleSaveProgress();
+      checkChapterComplete();
+      preloadNeighbors();
     };
     newImg.onerror = function () {
       loading.hidden = true;
       img.hidden = true;
-      showError("Page " + currentPage + " could not be loaded.");
+      showPageError("Page " + currentPage + " could not be loaded.");
     };
     newImg.src = src;
+  }
+
+  function preloadNeighbors() {
+    // Preload ahead
+    for (var i = 1; i <= maxPreloadAhead; i++) {
+      var aheadPage = currentPage + i;
+      if (aheadPage > totalPages) break;
+      var aheadSrc = buildPageSrc(aheadPage);
+      if (!preloadCache[aheadSrc]) {
+        var img = new Image();
+        img.src = aheadSrc;
+        preloadCache[aheadSrc] = img;
+      }
+    }
+
+    // Preload behind
+    for (var j = 1; j <= maxPreloadBehind; j++) {
+      var behindPage = currentPage - j;
+      if (behindPage < 1) break;
+      var behindSrc = buildPageSrc(behindPage);
+      if (!preloadCache[behindSrc]) {
+        var img2 = new Image();
+        img2.src = behindSrc;
+        preloadCache[behindSrc] = img2;
+      }
+    }
+
+    // Preload next chapter first page
+    if (currentChapterIdx < chapters.length - 1 && currentPage >= totalPages - 1) {
+      var nextChapter = chapters[currentChapterIdx + 1];
+      if (nextChapter && nextChapter.pages > 0) {
+        var nextSrc = "/api/reader/" +
+          encodeURIComponent(comicId) +
+          "/" +
+          encodeURIComponent(nextChapter.chapter_id) +
+          "/1";
+        if (!preloadCache[nextSrc]) {
+          var nextImg = new Image();
+          nextImg.src = nextSrc;
+          preloadCache[nextSrc] = nextImg;
+        }
+      }
+    }
+  }
+
+  function showPageError(msg) {
+    var errorEl = document.getElementById("reader-error");
+    var errorMsg = document.getElementById("reader-error-msg");
+    if (errorEl) {
+      errorEl.hidden = false;
+      if (errorMsg) errorMsg.textContent = msg;
+    }
   }
 
   function goToPage(page) {
@@ -343,6 +639,10 @@
     });
   }
 
+  /* ============================================================
+     CHAPTER SELECT
+     ============================================================ */
+
   function renderChapterSelect() {
     var sel = document.getElementById("chapter-select");
     if (!sel) return;
@@ -372,6 +672,10 @@
       if (foundIdx >= 0) showChapter(foundIdx, 1);
     });
   }
+
+  /* ============================================================
+     CHAPTER DRAWER
+     ============================================================ */
 
   function toggleChapterDrawer() {
     if (drawerOpen) {
@@ -431,14 +735,14 @@
             '<div class="reader-drawer-actions">' +
             '<button class="reader-drawer-dl-btn" title="Download" data-action="download" data-chapter-id="' +
             escapeAttr(ch.chapter_id) +
-            '">↓</button>' +
+            '">\u2193</button>' +
             "</div>";
         } else if (status === "error" || status === "partial") {
           actionsHtml =
             '<div class="reader-drawer-actions">' +
             '<button class="reader-drawer-retry-btn" title="Retry" data-action="retry" data-chapter-id="' +
             escapeAttr(ch.chapter_id) +
-            '">↻</button>' +
+            '">\u21BB</button>' +
             "</div>";
         } else if (status === "downloaded") {
           actionsHtml =
@@ -524,6 +828,14 @@
   function handleDrawerChapterClick(chapterId, status) {
     if (status === "downloaded") {
       navigateToChapter(chapterId);
+    } else if (status === "not_downloaded") {
+      showToast("Chapter not downloaded. Click \u2193 to download.");
+    } else if (status === "error") {
+      showToast("Chapter download failed. Click \u21BB to retry.");
+    } else if (status === "downloading") {
+      showToast("Chapter is downloading...");
+    } else if (status === "queued") {
+      showToast("Chapter is queued for download.");
     }
   }
 
@@ -539,7 +851,7 @@
   }
 
   function downloadChapter(chapterId) {
-    showToast("Starting download…");
+    showToast("Starting download\u2026");
 
     API.post(
       "/library/" +
@@ -558,7 +870,7 @@
   }
 
   function retryChapter(chapterId) {
-    showToast("Retrying download…");
+    showToast("Retrying download\u2026");
 
     API.post(
       "/downloads/" +
@@ -617,6 +929,10 @@
       toast.hidden = true;
     }, 3000);
   }
+
+  /* ============================================================
+     UI TOGGLES
+     ============================================================ */
 
   function toggleUi() {
     uiVisible = !uiVisible;
@@ -693,8 +1009,8 @@
 
     var btn = document.getElementById("btn-fit");
     if (btn) {
-      var labels = ["⊠", "↔", "↕", "1:1"];
-      btn.textContent = labels[fitMode] || "⊠";
+      var labels = ["\u2296", "\u2194", "\u2195", "1:1"];
+      btn.textContent = labels[fitMode] || "\u2296";
     }
   }
 

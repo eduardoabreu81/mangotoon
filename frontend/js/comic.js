@@ -1,10 +1,16 @@
 // MangoToon Frontend - Comic Detail Page
+// Phase 17.8: Reader and Comic UX Overhaul
 
 (function () {
   "use strict";
 
   var comicId = null;
   var comicData = null;
+  var allChapters = [];
+  var filteredChapters = [];
+  var sortAsc = true;
+  var pageSize = 50;
+  var currentPage = 0;
 
   var loadingEl = document.getElementById("detail-loading");
   var errorEl = document.getElementById("detail-error");
@@ -29,6 +35,10 @@
   var chapterListEl = document.getElementById("detail-chapter-list");
   var noChaptersEl = document.getElementById("detail-no-chapters");
   var chaptersFilterCount = document.getElementById("detail-chapters-filter-count");
+  var chapterSearchInput = document.getElementById("chapter-search");
+  var chapterFilterSelect = document.getElementById("chapter-filter");
+  var chapterSortBtn = document.getElementById("chapter-sort");
+  var chapterShowMoreBtn = document.getElementById("chapter-show-more");
 
   var btnRead = document.getElementById("btn-detail-read");
   var btnDownloadMissing = document.getElementById("btn-detail-download-missing");
@@ -61,9 +71,30 @@
     btnRefresh.addEventListener("click", onRefresh);
     btnDelete.addEventListener("click", onDelete);
 
+    if (chapterSearchInput) {
+      chapterSearchInput.addEventListener("input", debounce(onSearch, 200));
+    }
+    if (chapterFilterSelect) {
+      chapterFilterSelect.addEventListener("change", onFilter);
+    }
+    if (chapterSortBtn) {
+      chapterSortBtn.addEventListener("click", onToggleSort);
+    }
+    if (chapterShowMoreBtn) {
+      chapterShowMoreBtn.addEventListener("click", onShowMore);
+    }
+
     window.addEventListener("beforeunload", stopPolling);
 
     loadDetail();
+  }
+
+  function debounce(fn, ms) {
+    var timer = null;
+    return function () {
+      clearTimeout(timer);
+      timer = setTimeout(fn, ms);
+    };
   }
 
   function loadDetail() {
@@ -74,6 +105,8 @@
     API.get("/library/" + encodeURIComponent(comicId) + "/detail")
       .then(function (data) {
         comicData = data;
+        allChapters = data.chapters || [];
+        applyFilters();
         renderDetail();
         if (contentEl) contentEl.hidden = false;
       })
@@ -206,26 +239,101 @@
     }
   }
 
+  /* ============================================================
+     CHAPTER FILTERING / SORTING / PAGINATION
+     ============================================================ */
+
+  function onSearch() {
+    currentPage = 0;
+    applyFilters();
+    renderChapters();
+  }
+
+  function onFilter() {
+    currentPage = 0;
+    applyFilters();
+    renderChapters();
+  }
+
+  function onToggleSort() {
+    sortAsc = !sortAsc;
+    if (chapterSortBtn) {
+      chapterSortBtn.textContent = sortAsc ? "\u2191" : "\u2193";
+      chapterSortBtn.title = sortAsc ? "Sort ascending" : "Sort descending";
+    }
+    applyFilters();
+    renderChapters();
+  }
+
+  function onShowMore() {
+    currentPage++;
+    renderChapters();
+  }
+
+  function applyFilters() {
+    var query = (chapterSearchInput ? chapterSearchInput.value : "").toLowerCase().trim();
+    var filter = chapterFilterSelect ? chapterFilterSelect.value : "all";
+
+    filteredChapters = allChapters.filter(function (ch) {
+      var matchQuery = true;
+      if (query) {
+        var num = String(ch.chapter_number || "").toLowerCase();
+        var title = String(ch.title || "").toLowerCase();
+        var id = String(ch.chapter_id || "").toLowerCase();
+        matchQuery = num.indexOf(query) >= 0 || title.indexOf(query) >= 0 || id.indexOf(query) >= 0;
+      }
+
+      var matchFilter = true;
+      if (filter !== "all") {
+        matchFilter = (ch.status || "not_downloaded") === filter;
+      }
+
+      return matchQuery && matchFilter;
+    });
+
+    // Sort
+    filteredChapters.sort(function (a, b) {
+      var aNum = parseFloat(a.chapter_number) || 0;
+      var bNum = parseFloat(b.chapter_number) || 0;
+      if (aNum !== bNum) {
+        return sortAsc ? aNum - bNum : bNum - aNum;
+      }
+      return sortAsc
+        ? (a.chapter_id || "").localeCompare(b.chapter_id || "")
+        : (b.chapter_id || "").localeCompare(a.chapter_id || "");
+    });
+
+    if (chaptersFilterCount) {
+      chaptersFilterCount.textContent = filteredChapters.length + " / " + allChapters.length;
+    }
+  }
+
   function renderChapters() {
     if (!chapterListEl || !noChaptersEl) return;
 
-    var chapters = comicData.chapters || [];
-
-    if (chapters.length === 0) {
+    if (filteredChapters.length === 0) {
       chapterListEl.innerHTML = "";
       noChaptersEl.hidden = false;
-      if (chaptersFilterCount) chaptersFilterCount.textContent = "";
+      if (chapterShowMoreBtn) chapterShowMoreBtn.hidden = true;
       return;
     }
 
     noChaptersEl.hidden = true;
-    if (chaptersFilterCount) chaptersFilterCount.textContent = chapters.length + " total";
 
-    chapterListEl.innerHTML = chapters
+    var endIndex = (currentPage + 1) * pageSize;
+    var hasMore = filteredChapters.length > endIndex;
+    var visible = filteredChapters.slice(0, endIndex);
+
+    chapterListEl.innerHTML = visible
       .map(function (ch) {
         return renderChapterRow(ch);
       })
       .join("");
+
+    if (chapterShowMoreBtn) {
+      chapterShowMoreBtn.hidden = !hasMore;
+      chapterShowMoreBtn.textContent = "Show more (" + (filteredChapters.length - endIndex) + " remaining)";
+    }
   }
 
   function renderChapterRow(ch) {
@@ -323,6 +431,10 @@
     }
   }
 
+  /* ============================================================
+     EVENT HANDLERS — Chapter List Click
+     ============================================================ */
+
   if (chapterListEl) {
     chapterListEl.addEventListener("click", function (e) {
       var dlBtn = e.target.closest("[data-chapter-dl]");
@@ -341,11 +453,12 @@
         return;
       }
 
+      // BUG FIX: use data-chapter-read attribute, not chapterId
       var readBtn = e.target.closest("[data-chapter-read]");
       if (readBtn) {
         e.preventDefault();
         e.stopPropagation();
-        var chId = readBtn.dataset.chapterId;
+        var chId = readBtn.dataset.chapterRead;  // FIXED: was readBtn.dataset.chapterId
         window.location.href = "/reader?comic=" + encodeURIComponent(comicId) + "&chapter_id=" + encodeURIComponent(chId);
         return;
       }
@@ -488,6 +601,8 @@
       .then(function (data) {
         showToast("Metadata refreshed.", "success");
         comicData = data;
+        allChapters = data.chapters || [];
+        applyFilters();
         renderDetail();
       })
       .catch(function (err) {
@@ -533,6 +648,7 @@
     API.get("/downloads/" + encodeURIComponent(comicId) + "/status")
       .then(function (status) {
         updateChapterStatuses(status);
+        applyFilters();
         renderChapters();
 
         if (

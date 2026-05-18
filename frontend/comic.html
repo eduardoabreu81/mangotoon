@@ -18,7 +18,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a href="/" class="active">
+        <a href="/">
           <span class="nav-icon">&#x1F4DA;</span>
           <span>Library</span>
         </a>
@@ -77,35 +77,30 @@
         <!-- Detail content -->
         <div id="detail-content" class="detail-content" hidden>
 
-          <!-- Cover + Metadata -->
-          <section class="detail-header">
-            <div class="detail-cover-wrap">
-              <img id="detail-cover" class="detail-cover" src="" alt="">
+          <!-- Hero Section -->
+          <section class="detail-hero">
+            <div class="detail-hero-cover">
+              <img id="detail-cover" class="detail-cover" src="" alt="" hidden>
               <div id="detail-cover-placeholder" class="detail-cover-placeholder" hidden></div>
             </div>
-            <div class="detail-meta">
-              <div class="detail-meta-top">
-                <h2 id="detail-title-display" class="detail-title-display"></h2>
+            <div class="detail-hero-info">
+              <div class="detail-hero-meta">
+                <h1 id="detail-title-display" class="detail-title-display"></h1>
                 <div id="detail-source" class="preview-source"></div>
+                <span id="detail-status" class="status-badge"></span>
               </div>
-
-              <span id="detail-status" class="status-badge"></span>
-
               <p id="detail-description" class="detail-description-text" hidden></p>
-
-              <div class="detail-stats">
+              <div class="detail-hero-stats">
                 <span id="detail-chapter-count">0 chapters</span>
-                <span class="detail-stats-sep">·</span>
+                <span class="detail-stats-sep">&#x00B7;</span>
                 <span id="detail-downloaded-count">0 downloaded</span>
               </div>
-
               <div id="detail-progress" class="detail-progress" hidden>
                 <div class="detail-progress-bar">
                   <div id="detail-progress-fill" class="detail-progress-fill"></div>
                 </div>
                 <span id="detail-progress-text" class="detail-progress-text"></span>
               </div>
-
               <div id="detail-reading-progress" class="detail-reading-progress" hidden>
                 <span id="detail-reading-text"></span>
               </div>
@@ -114,21 +109,37 @@
 
           <!-- Actions -->
           <section class="detail-actions">
-            <button id="btn-detail-read" class="btn-primary">Read</button>
+            <button id="btn-detail-read" class="btn-primary">
+              <span>&#x25B6;</span> Read
+            </button>
             <button id="btn-detail-download-missing" class="btn-secondary">Download Missing</button>
             <button id="btn-detail-retry-failed" class="btn-secondary" hidden>Retry Failed</button>
-            <button id="btn-detail-refresh" class="btn-secondary">Refresh</button>
+            <button id="btn-detail-refresh" class="btn-secondary">Refresh Metadata</button>
             <button id="btn-detail-delete" class="btn-secondary detail-delete-btn">Delete</button>
+          </section>
+
+          <!-- Chapter List Header -->
+          <section class="detail-chapters-header-bar">
+            <h3>Chapters</h3>
+            <div class="detail-chapters-controls">
+              <input type="text" id="chapter-search" class="chapter-search-input" placeholder="Search chapters...">
+              <select id="chapter-filter" class="chapter-filter-select">
+                <option value="all">All</option>
+                <option value="downloaded">Downloaded</option>
+                <option value="not_downloaded">Missing</option>
+                <option value="error">Error</option>
+                <option value="partial">Partial</option>
+              </select>
+              <button id="chapter-sort" class="chapter-sort-btn" title="Toggle sort order">&#x2191;</button>
+              <span id="detail-chapters-filter-count" class="sidebar-count"></span>
+            </div>
           </section>
 
           <!-- Chapter List -->
           <section class="detail-chapters">
-            <div class="detail-chapters-header">
-              <h3>Chapters</h3>
-              <span id="detail-chapters-filter-count" class="sidebar-count"></span>
-            </div>
             <div id="detail-chapter-list" class="detail-chapter-list"></div>
             <div id="detail-no-chapters" class="detail-no-chapters" hidden>No chapters available.</div>
+            <button id="chapter-show-more" class="chapter-show-more-btn" hidden>Show more</button>
           </section>
         </div>
 
