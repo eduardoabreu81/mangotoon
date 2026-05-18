@@ -19,11 +19,10 @@
   var drawerOpen = false;
   var drawerLoading = false;
 
-  // Phase 17.8: Preload cache
-  var preloadCache = {}; // src -> Image object
-  var preloadQueue = [];
-  var maxPreloadAhead = 3;
-  var maxPreloadBehind = 1;
+  // Phase 17.8: Preload cache (DISABLED for debugging)
+  var imageCache = {}; // src -> {img, status, promise}
+  var maxPreloadAhead = 0;
+  var maxPreloadBehind = 0;
 
   // Phase 17.8: Reader mode (paged | vertical)
   var readerMode = "paged"; // default
@@ -204,11 +203,11 @@
 
   function preloadVerticalPage(pageNum) {
     var src = buildPageSrc(pageNum);
-    if (preloadCache[src]) return;
+    if (imageCache[src]) return;
 
     var img = new Image();
     img.src = src;
-    preloadCache[src] = img;
+    imageCache[src] = { img: img, status: "loading", promise: null };
   }
 
   function preloadVerticalRange(fromPage, count) {
@@ -486,7 +485,7 @@
   }
 
   /* ============================================================
-     PAGE LOADING WITH PRELOAD (Phase 17.8)
+     PAGE LOADING — SIMPLIFIED (preload disabled for debugging)
      ============================================================ */
 
   function loadPage() {
@@ -497,10 +496,9 @@
     var loading = document.getElementById("reader-loading");
     var errorEl = document.getElementById("reader-error");
 
-    // Increment token to invalidate old loads
     pageLoadToken++;
     var myToken = pageLoadToken;
-    var loadStart = performance.now();
+    var t0 = performance.now();
 
     img.hidden = true;
     loading.hidden = false;
@@ -510,62 +508,70 @@
     updateProgressBar();
 
     var src = buildPageSrc(currentPage);
+    console.debug("[reader] direct page src | " + src + " | token=" + myToken);
 
-    console.debug("[reader] loadPage start | page=" + currentPage + " | src=" + src + " | token=" + myToken);
-
-    // Check cache first
-    if (preloadCache[src] && preloadCache[src].complete) {
-      var cached = preloadCache[src];
-      console.debug("[reader] cache hit | token=" + myToken + " | elapsed=" + (performance.now() - loadStart).toFixed(1) + "ms");
-      renderLoadedImage(img, loading, errorEl, src, cached.naturalWidth, cached.naturalHeight, myToken, loadStart);
-      return;
+    var cached = imageCache[src];
+    if (cached) {
+      console.debug("[reader] cache status | " + cached.status + " | token=" + myToken);
+      if (cached.status === "loaded") {
+        renderLoadedImage(img, loading, errorEl, src, myToken, t0);
+        return;
+      }
+      if (cached.status === "loading") {
+        cached.promise.then(function () {
+          if (myToken !== pageLoadToken) {
+            console.debug("[reader] stale promise ignored | myToken=" + myToken + " | current=" + pageLoadToken);
+            return;
+          }
+          renderLoadedImage(img, loading, errorEl, src, myToken, t0);
+        }).catch(function () {
+          if (myToken !== pageLoadToken) return;
+          renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
+        });
+        return;
+      }
+      // status === "error" → fall through and retry
+      console.debug("[reader] cache error, retrying | token=" + myToken);
     }
 
-    // Check if already loading
-    if (preloadCache[src] && !preloadCache[src].complete) {
-      console.debug("[reader] already loading | token=" + myToken + " | waiting...");
-      var existingImg = preloadCache[src];
-      existingImg.onload = function () {
+    // Fresh load with Promise-based tracking
+    var entry = {
+      img: new Image(),
+      status: "loading",
+      promise: null
+    };
+    imageCache[src] = entry;
+
+    entry.promise = new Promise(function (resolve, reject) {
+      entry.img.onload = function () {
         if (myToken !== pageLoadToken) {
-          console.debug("[reader] stale load ignored | myToken=" + myToken + " | current=" + pageLoadToken);
+          console.debug("[reader] stale onload ignored | myToken=" + myToken);
+          resolve();
           return;
         }
-        renderLoadedImage(img, loading, errorEl, src, existingImg.naturalWidth, existingImg.naturalHeight, myToken, loadStart);
+        entry.status = "loaded";
+        var t1 = performance.now();
+        console.debug("[reader] fetch/decode elapsed | " + (t1 - t0).toFixed(1) + "ms | token=" + myToken);
+        resolve();
       };
-      existingImg.onerror = function () {
-        if (myToken !== pageLoadToken) return;
-        renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
+      entry.img.onerror = function () {
+        entry.status = "error";
+        reject(new Error("Failed to load " + src));
       };
-      return;
-    }
+      entry.img.src = src;
+    });
 
-    // Start new load
-    var newImg = new Image();
-    preloadCache[src] = newImg;
-
-    newImg.onload = function () {
-      if (myToken !== pageLoadToken) {
-        console.debug("[reader] stale onload ignored | myToken=" + myToken + " | current=" + pageLoadToken);
-        return;
-      }
-      renderLoadedImage(img, loading, errorEl, src, newImg.naturalWidth, newImg.naturalHeight, myToken, loadStart);
-    };
-
-    newImg.onerror = function () {
-      if (myToken !== pageLoadToken) {
-        console.debug("[reader] stale onerror ignored | myToken=" + myToken + " | current=" + pageLoadToken);
-        return;
-      }
+    entry.promise.then(function () {
+      if (myToken !== pageLoadToken) return;
+      renderLoadedImage(img, loading, errorEl, src, myToken, t0);
+    }).catch(function () {
+      if (myToken !== pageLoadToken) return;
       renderLoadError(loading, img, "Page " + currentPage + " could not be loaded.");
-    };
-
-    newImg.src = src;
+    });
   }
 
-  function renderLoadedImage(img, loading, errorEl, src, naturalWidth, naturalHeight, token, loadStart) {
-    var elapsed = performance.now() - loadStart;
-    console.debug("[reader] loadPage end | token=" + token + " | elapsed=" + elapsed.toFixed(1) + "ms | dims=" + naturalWidth + "x" + naturalHeight);
-
+  function renderLoadedImage(img, loading, errorEl, src, token, t0) {
+    var tRender = performance.now();
     img.src = src;
     img.hidden = false;
     loading.hidden = true;
@@ -574,7 +580,12 @@
     applyFitMode();
     scheduleSaveProgress();
     checkChapterComplete();
-    schedulePreload();
+
+    console.debug(
+      "[reader] render elapsed | " + (tRender - t0).toFixed(1) + "ms | " +
+      "total elapsed | " + (performance.now() - t0).toFixed(1) + "ms | " +
+      "token=" + token
+    );
   }
 
   function renderLoadError(loading, img, msg) {
@@ -584,53 +595,13 @@
   }
 
   function schedulePreload() {
-    // Cancel any pending preload
-    clearTimeout(preloadTimer);
-    // Defer preload so it doesn't compete with manual navigation
-    preloadTimer = setTimeout(preloadNeighbors, 100);
+    // PRELOAD DISABLED for debugging — do nothing
+    return;
   }
 
   function preloadNeighbors() {
-    // Preload ahead
-    for (var i = 1; i <= maxPreloadAhead; i++) {
-      var aheadPage = currentPage + i;
-      if (aheadPage > totalPages) break;
-      var aheadSrc = buildPageSrc(aheadPage);
-      if (!preloadCache[aheadSrc]) {
-        var img = new Image();
-        img.src = aheadSrc;
-        preloadCache[aheadSrc] = img;
-      }
-    }
-
-    // Preload behind
-    for (var j = 1; j <= maxPreloadBehind; j++) {
-      var behindPage = currentPage - j;
-      if (behindPage < 1) break;
-      var behindSrc = buildPageSrc(behindPage);
-      if (!preloadCache[behindSrc]) {
-        var img2 = new Image();
-        img2.src = behindSrc;
-        preloadCache[behindSrc] = img2;
-      }
-    }
-
-    // Preload next chapter first page
-    if (currentChapterIdx < chapters.length - 1 && currentPage >= totalPages - 1) {
-      var nextChapter = chapters[currentChapterIdx + 1];
-      if (nextChapter && nextChapter.pages > 0) {
-        var nextSrc = "/api/reader/" +
-          encodeURIComponent(comicId) +
-          "/" +
-          encodeURIComponent(nextChapter.chapter_id) +
-          "/1";
-        if (!preloadCache[nextSrc]) {
-          var nextImg = new Image();
-          nextImg.src = nextSrc;
-          preloadCache[nextSrc] = nextImg;
-        }
-      }
-    }
+    // PRELOAD DISABLED for debugging — do nothing
+    return;
   }
 
   function showPageError(msg) {
