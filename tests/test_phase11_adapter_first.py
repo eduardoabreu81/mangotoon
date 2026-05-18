@@ -115,9 +115,9 @@ def test_reader_uses_local_pages(isolated_storage):
     assert data_response.status_code == 200
     assert data_response.json()["chapters"][0]["pages"] == 1
     assert page_response.status_code == 200
-    # Phase 17.8: get_page_image now reads directly from chapter_dir for speed.
-    # It no longer follows local_pages redirects — those are for data/list endpoints.
-    assert page_response.content == b"old-glob-page"
+    # Phase 17.8 v3: get_page_image now uses metadata local_pages as fast path.
+    # When local_pages is available, it resolves directly without dir scan.
+    assert page_response.content == b"preferred-local-page"
 
 
 @pytest.mark.asyncio

@@ -35,8 +35,34 @@ class SaveProgressRequest(BaseModel):
     completed: bool = False
 
 
+def _page_count_from_chapter(chapter: dict) -> int:
+    """Return page count from metadata fields — no filesystem access."""
+    return (
+        chapter.get("downloaded_pages")
+        or chapter.get("pages")
+        or len(chapter.get("local_pages") or [])
+        or 0
+    )
+
+
+def _resolve_page_from_local_pages(comic_id: str, chapter: dict, page_number: int) -> Path | None:
+    """Resolve page path from chapter.local_pages metadata — no dir scan."""
+    local_pages = chapter.get("local_pages") or []
+    if not local_pages:
+        return None
+    index = page_number - 1
+    if index < 0 or index >= len(local_pages):
+        return None
+    comics_root = storage.COMICS_DIR.resolve()
+    data_root = storage.COMICS_DIR.parent.resolve()
+    page_path = (data_root / local_pages[index]).resolve()
+    if not page_path.is_relative_to(comics_root):
+        return None
+    return page_path if page_path.exists() else None
+
+
 def _chapter_files_from_dir(comic_id: str, chapter_id: str) -> list[Path]:
-    """List image files directly from chapter directory — no metadata read."""
+    """List image files directly from chapter directory — fallback only."""
     comics_root = storage.COMICS_DIR.resolve()
     chapter_dir = (storage.COMICS_DIR / comic_id / "chapters" / chapter_id).resolve()
     if not chapter_dir.is_relative_to(comics_root) or not chapter_dir.exists():
@@ -55,6 +81,7 @@ def _media_type_for(path: Path) -> str:
 
 @router.get("/{comic_id}/data")
 async def get_reader_data(comic_id: str) -> dict:
+    t0 = time.perf_counter()
     meta = storage.load_comic_metadata(comic_id)
     if not meta:
         raise HTTPException(status_code=404, detail=f"Comic '{comic_id}' not found.")
@@ -63,16 +90,21 @@ async def get_reader_data(comic_id: str) -> dict:
     for chapter in meta.get("chapters", []):
         if chapter.get("status") != "downloaded":
             continue
-        pages = _chapter_page_paths(comic_id, chapter)
         chapters.append(
             {
                 "chapter_id": chapter.get("chapter_id", ""),
                 "chapter_number": chapter.get("chapter_number", ""),
                 "title": chapter.get("title", ""),
-                "pages": len(pages),
+                "pages": _page_count_from_chapter(chapter),
                 "volume": chapter.get("volume", ""),
             }
         )
+
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    logger.info(
+        "Reader data served: comic=%s chapters=%d elapsed_ms=%.2f",
+        comic_id, len(chapters), elapsed_ms,
+    )
 
     return {
         "comic_id": comic_id,
@@ -91,7 +123,7 @@ async def get_reader_chapters(comic_id: str) -> dict:
     return {
         "comic_id": comic_id,
         "title": meta.get("title", ""),
-        "chapters": [_reader_chapter_summary(comic_id, chapter) for chapter in meta.get("chapters", [])],
+        "chapters": [_reader_chapter_summary(chapter) for chapter in meta.get("chapters", [])],
         "progress": meta.get("reading_progress"),
     }
 
@@ -105,21 +137,38 @@ async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> Fi
     if page_number < 1:
         raise HTTPException(status_code=400, detail="Page number must be >= 1")
 
-    pages = _chapter_files_from_dir(comic_id, chapter_id)
-    index = page_number - 1
-    if index < 0 or index >= len(pages):
-        raise HTTPException(status_code=404, detail="Page not found")
+    # Fast path: resolve from metadata local_pages (no filesystem scan)
+    meta = storage.load_comic_metadata(comic_id)
+    chapter = None
+    if meta:
+        chapter = next(
+            (c for c in meta.get("chapters", []) if c.get("chapter_id") == chapter_id),
+            None,
+        )
 
-    page_path = pages[index]
-    if not page_path.exists():
+    source = "fallback-dir-scan"
+    page_path = None
+    if chapter:
+        page_path = _resolve_page_from_local_pages(comic_id, chapter, page_number)
+        if page_path:
+            source = "metadata-local-pages"
+
+    # Fallback: scan directory if metadata path failed
+    if not page_path:
+        pages = _chapter_files_from_dir(comic_id, chapter_id)
+        index = page_number - 1
+        if 0 <= index < len(pages):
+            page_path = pages[index]
+
+    if not page_path or not page_path.exists():
         raise HTTPException(status_code=404, detail="Page not found")
 
     resolve_ms = (time.perf_counter() - t0) * 1000
     file_size = page_path.stat().st_size
 
     logger.info(
-        "Reader image served: comic=%s chapter=%s page=%s size=%s resolve_ms=%.2f",
-        comic_id, chapter_id, page_number, file_size, resolve_ms,
+        "Reader image served: comic=%s chapter=%s page=%s size=%s resolve_ms=%.2f source=%s",
+        comic_id, chapter_id, page_number, file_size, resolve_ms, source,
     )
 
     return FileResponse(
@@ -128,7 +177,8 @@ async def get_page_image(comic_id: str, chapter_id: str, page_number: int) -> Fi
         headers={
             "Cache-Control": "public, max-age=3600",
             "X-MangoToon-File-Size": str(file_size),
-            "X-MangoToon-Source": "direct-local-file",
+            "X-MangoToon-Source": source,
+            "X-MangoToon-Resolve-Ms": f"{resolve_ms:.2f}",
         },
     )
 
@@ -142,9 +192,26 @@ async def get_page_image_debug(comic_id: str, chapter_id: str, page_number: int)
     if page_number < 1:
         raise HTTPException(status_code=400, detail="Page number must be >= 1")
 
-    pages = _chapter_files_from_dir(comic_id, chapter_id)
-    index = page_number - 1
-    page_path = pages[index] if 0 <= index < len(pages) else None
+    meta = storage.load_comic_metadata(comic_id)
+    chapter = None
+    if meta:
+        chapter = next(
+            (c for c in meta.get("chapters", []) if c.get("chapter_id") == chapter_id),
+            None,
+        )
+
+    source = "fallback-dir-scan"
+    page_path = None
+    if chapter:
+        page_path = _resolve_page_from_local_pages(comic_id, chapter, page_number)
+        if page_path:
+            source = "metadata-local-pages"
+
+    if not page_path:
+        pages = _chapter_files_from_dir(comic_id, chapter_id)
+        index = page_number - 1
+        page_path = pages[index] if 0 <= index < len(pages) else None
+
     resolve_ms = (time.perf_counter() - t0) * 1000
 
     return {
@@ -152,14 +219,15 @@ async def get_page_image_debug(comic_id: str, chapter_id: str, page_number: int)
         "exists": page_path.exists() if page_path else False,
         "file_size_bytes": page_path.stat().st_size if page_path and page_path.exists() else 0,
         "suffix": page_path.suffix if page_path else None,
-        "page_index": index,
-        "local_file_count": len(pages),
+        "page_index": page_number - 1,
+        "local_file_count": len(chapter.get("local_pages", [])) if chapter else 0,
         "resolve_ms": round(resolve_ms, 2),
-        "source": "direct-local-file",
+        "source": source,
     }
 
 
 def _chapter_page_paths(comic_id: str, chapter: dict) -> list:
+    """Legacy helper for non-hot-path endpoints. May access filesystem."""
     local_pages = chapter.get("local_pages") or []
     if local_pages:
         pages = []
@@ -173,14 +241,13 @@ def _chapter_page_paths(comic_id: str, chapter: dict) -> list:
     return _fallback_chapter_pages(comic_id, chapter.get("chapter_id", ""))
 
 
-def _reader_chapter_summary(comic_id: str, chapter: dict) -> dict:
+def _reader_chapter_summary(chapter: dict) -> dict:
     status = chapter.get("status", "not_downloaded")
-    pages = _chapter_page_paths(comic_id, chapter) if status == "downloaded" else []
     return {
         "chapter_id": chapter.get("chapter_id", ""),
         "chapter_number": chapter.get("chapter_number", ""),
         "title": chapter.get("title", ""),
-        "pages": len(pages) if pages else chapter.get("pages", 0),
+        "pages": _page_count_from_chapter(chapter) if status == "downloaded" else chapter.get("pages", 0),
         "volume": chapter.get("volume", ""),
         "status": status,
         "downloaded_pages": chapter.get("downloaded_pages", 0),
