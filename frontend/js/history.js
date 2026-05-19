@@ -62,6 +62,20 @@
         '" alt="' +
         escapeHtml(item.title) +
         '" loading="lazy">';
+    } else if (item.cover_path) {
+      // Phase 17.9: API returns cover_path (local path), serve via static or API
+      var coverSrc = item.cover_path.startsWith("http")
+        ? item.cover_path
+        : "/api/comics/" + escapeAttr(item.comic_id) + "/cover";
+      coverHtml =
+        '<img class="comic-cover" src="' +
+        coverSrc +
+        '" alt="' +
+        escapeHtml(item.title) +
+        '" loading="lazy" onerror="this.style.display=\'none\';this.parentElement.querySelector(\'.comic-cover-placeholder\').style.display=\'flex\'">' +
+        '<div class="comic-cover-placeholder" aria-hidden="true" style="display:none">' +
+        escapeHtml((item.title || "?").charAt(0).toUpperCase()) +
+        "</div>";
     } else if (item.comic_id) {
       coverHtml =
         '<img class="comic-cover" src="/api/comics/' +
