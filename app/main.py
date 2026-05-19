@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__
@@ -45,24 +45,29 @@ def create_app() -> FastAPI:
         return {"status": "ok", "app": settings.app_name, "version": __version__}
 
     @app.get("/")
-    async def root() -> FileResponse:
-        return FileResponse(FRONTEND_DIR / "index.html")
+    async def root() -> HTMLResponse:
+        content = (FRONTEND_DIR / "index.html").read_text()
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
     @app.get("/reader")
-    async def reader_page() -> FileResponse:
-        return FileResponse(FRONTEND_DIR / "reader.html")
+    async def reader_page() -> HTMLResponse:
+        content = (FRONTEND_DIR / "reader.html").read_text()
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
     @app.get("/comic")
-    async def comic_page() -> FileResponse:
-        return FileResponse(FRONTEND_DIR / "comic.html")
+    async def comic_page() -> HTMLResponse:
+        content = (FRONTEND_DIR / "comic.html").read_text()
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
     @app.get("/settings")
-    async def settings_page() -> FileResponse:
-        return FileResponse(FRONTEND_DIR / "settings.html")
+    async def settings_page(request: Request) -> HTMLResponse:
+        content = (FRONTEND_DIR / "settings.html").read_text()
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
     @app.get("/history")
-    async def history_page() -> FileResponse:
-        return FileResponse(FRONTEND_DIR / "history.html")
+    async def history_page() -> HTMLResponse:
+        content = (FRONTEND_DIR / "history.html").read_text()
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
     @app.get("/favicon.ico")
     async def favicon() -> FileResponse:
