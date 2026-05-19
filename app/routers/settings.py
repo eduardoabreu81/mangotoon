@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.models.comic import Settings
+from app.services.source_registry import source_registry
 from app.services.storage import load_settings, save_settings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -18,6 +19,8 @@ async def get_settings() -> Settings:
 async def update_settings(payload: Settings) -> Settings:
     try:
         save_settings(payload.model_dump())
+        # Phase 17.10: Refresh source adapters when language changes
+        source_registry.refresh_adapters()
         return payload
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to save settings: {e}")
