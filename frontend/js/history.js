@@ -66,7 +66,7 @@
       // Phase 17.9: API returns cover_path (local path), serve via static or API
       var coverSrc = item.cover_path.startsWith("http")
         ? item.cover_path
-        : "/api/comics/" + escapeAttr(item.comic_id) + "/cover";
+        : "/api/library/" + escapeAttr(item.comic_id) + "/cover";
       coverHtml =
         '<img class="comic-cover" src="' +
         coverSrc +
@@ -78,7 +78,7 @@
         "</div>";
     } else if (item.comic_id) {
       coverHtml =
-        '<img class="comic-cover" src="/api/comics/' +
+        '<img class="comic-cover" src="/api/library/' +
         escapeAttr(item.comic_id) +
         '/cover" alt="' +
         escapeHtml(item.title) +
