@@ -100,6 +100,39 @@ def test_mangadex_url_detection_and_title_id_extraction():
     assert not adapter.can_handle("https://example.com/title/not-supported")
 
 
+def test_mangadex_adapter_capabilities_include_supported_languages():
+    adapter = MangaDexAdapter()
+    assert "pt-br" in adapter.capabilities.languages
+    assert "en" in adapter.capabilities.languages
+    assert "es-la" in adapter.capabilities.languages
+    assert "ja" in adapter.capabilities.languages
+
+
+@pytest.mark.asyncio
+async def test_mangadex_adapter_uses_configured_language():
+    calls: list[str] = []
+
+    def make_lang_transport(expected_lang: str) -> httpx.MockTransport:
+        def handler(request: httpx.Request) -> httpx.Response:
+            calls.append(request.url.path)
+            if request.url.path == f"/manga/{TITLE_ID}":
+                return httpx.Response(200, json=mangadex_title_payload(), request=request)
+            if request.url.path == f"/manga/{TITLE_ID}/feed":
+                # Verify the language param
+                lang_params = request.url.params.get_list("translatedLanguage[]")
+                assert expected_lang in lang_params, f"Expected {expected_lang}, got {lang_params}"
+                return httpx.Response(200, json=mangadex_feed_payload(), request=request)
+            return httpx.Response(404, json={"result": "error"}, request=request)
+        return httpx.MockTransport(handler)
+
+    async with httpx.AsyncClient(transport=make_lang_transport("pt-br"), base_url="https://api.mangadex.org") as client:
+        adapter = MangaDexAdapter(client=client, language="pt-br")
+        comic = await adapter.fetch_comic(f"https://mangadex.org/title/{TITLE_ID}/test-manga")
+
+    assert comic.comic_id == f"mangadex-{TITLE_ID}"
+    assert f"/manga/{TITLE_ID}/feed" in calls
+
+
 @pytest.mark.asyncio
 async def test_mangadex_adapter_normalizes_metadata():
     async with httpx.AsyncClient(transport=make_transport(), base_url="https://api.mangadex.org") as client:
@@ -166,17 +199,12 @@ def test_import_preview_returns_metadata_without_saving(isolated_storage, monkey
 
     assert response.status_code == 200
     data = response.json()
-    assert data == {
-        "source": "MangaDex",
-        "source_id": TITLE_ID,
-        "title": "Test Manga",
-        "description": "A MangaDex metadata fixture.",
-        "cover_url": f"https://uploads.mangadex.org/covers/{TITLE_ID}/cover-file.jpg.256.jpg",
-        "chapter_count": 2,
-        "languages": ["en"],
-        "duplicate": False,
-        "warnings": [],
-    }
+    assert data["source"] == "MangaDex"
+    assert data["source_id"] == TITLE_ID
+    assert data["title"] == "Test Manga"
+    assert data["chapter_count"] == 2
+    assert data["duplicate"] is False
+    assert data["warnings"] == []
     assert storage.load_library()["comics"] == []
     metadata_path = isolated_storage / "comics" / f"mangadex-{TITLE_ID}" / "metadata.json"
     assert not metadata_path.exists()

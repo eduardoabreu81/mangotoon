@@ -23,6 +23,7 @@ def test_get_settings_returns_all_default_settings(tmp_path, monkeypatch):
     assert data["download_auto_start"] is True
     assert data["download_default_chapters"] == "all"
     assert data["theme"] == "dark"
+    assert data["mangadex_language"] == "en"
 
 
 def test_post_settings_updates_expanded_settings(tmp_path, monkeypatch):
@@ -37,6 +38,7 @@ def test_post_settings_updates_expanded_settings(tmp_path, monkeypatch):
             "download_auto_start": False,
             "download_default_chapters": "unread",
             "theme": "auto",
+            "mangadex_language": "pt-br",
         }
     )
 
@@ -51,6 +53,7 @@ def test_post_settings_updates_expanded_settings(tmp_path, monkeypatch):
     assert data["download_auto_start"] is False
     assert data["download_default_chapters"] == "unread"
     assert data["theme"] == "auto"
+    assert data["mangadex_language"] == "pt-br"
 
 
 def test_post_settings_rejects_invalid_values(tmp_path, monkeypatch):
@@ -59,9 +62,10 @@ def test_post_settings_rejects_invalid_values(tmp_path, monkeypatch):
     payload["reader_default_fit"] = "stretch"
     payload["download_default_chapters"] = "latest"
     payload["theme"] = "blue"
+    payload["mangadex_language"] = "invalid"
 
     response = TestClient(app).post("/api/settings", json=payload)
 
     assert response.status_code == 422
     locations = {error["loc"][-1] for error in response.json()["detail"]}
-    assert {"reader_default_fit", "download_default_chapters", "theme"}.issubset(locations)
+    assert {"reader_default_fit", "download_default_chapters", "theme", "mangadex_language"}.issubset(locations)

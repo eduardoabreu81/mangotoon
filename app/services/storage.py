@@ -130,6 +130,7 @@ def load_settings() -> dict[str, Any]:
         "download_default_chapters": "all",
         "theme": "dark",
         "language": "en",
+        "mangadex_language": "en",
         "llm_provider": "",
         "llm_model": "",
         "llm_api_key": "",

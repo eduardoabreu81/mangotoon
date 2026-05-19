@@ -29,7 +29,7 @@ def test_list_sources_returns_capabilities(client):
     assert caps["cover"] is True
     assert caps["chapter_list"] is True
     assert caps["page_download"] is True
-    assert caps["languages"] == ["en"]
+    assert caps["languages"] == ["en", "pt-br", "es-la", "es", "fr", "de", "it", "ru", "ja", "ko", "zh", "id"]
     assert caps["supports_refresh"] is True
     assert caps["supports_search"] is False
     assert caps["requires_javascript"] is False

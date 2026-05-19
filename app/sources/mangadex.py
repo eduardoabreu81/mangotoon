@@ -24,16 +24,22 @@ class MangaDexAdapter:
         cover=True,
         chapter_list=True,
         page_download=True,
-        languages=["en"],
+        languages=["en", "pt-br", "es-la", "es", "fr", "de", "it", "ru", "ja", "ko", "zh", "id"],
         supports_refresh=True,
         supports_search=False,
         requires_javascript=False,
         requires_auth=False,
     )
 
-    def __init__(self, client: httpx.AsyncClient | None = None, api_base: str = MANGADEX_API_BASE) -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient | None = None,
+        api_base: str = MANGADEX_API_BASE,
+        language: str = "en",
+    ) -> None:
         self._client = client
         self.api_base = api_base.rstrip("/")
+        self.language = language
 
     def can_handle(self, url: str) -> bool:
         parsed = urlparse(url)
@@ -94,7 +100,7 @@ class MangaDexAdapter:
                 client,
                 f"/manga/{title_id}/feed",
                 params={
-                    "translatedLanguage[]": "en",
+                    "translatedLanguage[]": self.language,
                     "order[volume]": "asc",
                     "order[chapter]": "asc",
                     "limit": limit,

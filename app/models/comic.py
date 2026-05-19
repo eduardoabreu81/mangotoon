@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_validator
 
 
 class ChapterStatus(str, Enum):
@@ -124,9 +124,20 @@ class Settings(BaseModel):
     download_default_chapters: Literal["all", "unread", "none"] = "all"
     theme: Literal["dark", "light", "auto"] = "dark"
     language: str = "en"
+    mangadex_language: str = "en"
     llm_provider: str = ""
     llm_model: str = ""
     llm_api_key: str = ""
+
+    @field_validator("mangadex_language")
+    @classmethod
+    def validate_mangadex_language(cls, v: str) -> str:
+        allowed = {
+            "en", "pt-br", "es-la", "es", "fr", "de", "it", "ru", "ja", "ko", "zh", "id"
+        }
+        if v not in allowed:
+            raise ValueError(f"Invalid MangaDex language code. Allowed: {', '.join(sorted(allowed))}")
+        return v
 
 
 class APIError(BaseModel):

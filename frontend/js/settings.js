@@ -69,6 +69,7 @@
     setValue("set-reader-progress-bar", s.reader_show_progress_bar);
     setValue("set-theme", s.theme);
     setValue("set-language", s.language);
+    setValue("set-mangadex-language", s.mangadex_language);
   }
 
   function setValue(id, value) {
@@ -113,6 +114,7 @@
     s.reader_show_progress_bar = getCheckbox("set-reader-progress-bar");
     s.theme = getValue("set-theme");
     s.language = getValue("set-language");
+    s.mangadex_language = getValue("set-mangadex-language");
 
     return s;
   }

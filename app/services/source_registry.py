@@ -4,9 +4,14 @@ from app.models.comic import Comic
 from app.sources.base import SourceAdapter, UnsupportedSource
 
 
+from app.services.storage import load_settings
+
+
 def _default_adapters() -> list[SourceAdapter]:
     mangadex_module = import_module("app.sources.mangadex")
-    return [mangadex_module.MangaDexAdapter()]
+    settings = load_settings()
+    language = settings.get("mangadex_language", "en")
+    return [mangadex_module.MangaDexAdapter(language=language)]
 
 
 class SourceRegistry:

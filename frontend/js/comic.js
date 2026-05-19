@@ -194,6 +194,44 @@
     if (downloadedCountEl) {
       downloadedCountEl.textContent = downloaded + " downloaded";
     }
+
+    // Phase 17.10: Show chapter language
+    var languageEl = document.getElementById("detail-language");
+    if (languageEl) {
+      var languages = [];
+      var chapters = comicData.chapters || [];
+      for (var i = 0; i < chapters.length; i++) {
+        var lang = chapters[i].language;
+        if (lang && languages.indexOf(lang) === -1) {
+          languages.push(lang);
+        }
+      }
+      if (languages.length === 1) {
+        languageEl.textContent = "Language: " + formatLanguageName(languages[0]);
+      } else if (languages.length > 1) {
+        languageEl.textContent = "Multiple languages";
+      } else {
+        languageEl.textContent = "";
+      }
+    }
+  }
+
+  function formatLanguageName(code) {
+    var names = {
+      "en": "English",
+      "pt-br": "Portuguese (Brazil)",
+      "es-la": "Spanish (Latin America)",
+      "es": "Spanish",
+      "fr": "French",
+      "de": "German",
+      "it": "Italian",
+      "ru": "Russian",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "zh": "Chinese",
+      "id": "Indonesian"
+    };
+    return names[code] || code;
   }
 
   function renderProgress() {
