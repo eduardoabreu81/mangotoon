@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.models.comic import Comic, ImportPreview, LibraryResponse
@@ -18,6 +19,7 @@ from app.services.storage import (
     load_library,
     save_comic_metadata,
     save_library,
+    COMICS_DIR,
 )
 from app.sources.base import InvalidSourceUrl, SourceApiError, SourceNotFound, UnsupportedSource
 
@@ -211,6 +213,27 @@ async def update_comic_status(comic_id: str, payload: UpdateComicStatusRequest) 
         save_library(library)
 
     return Comic(**metadata)
+
+
+@router.get("/{comic_id}/cover")
+async def get_comic_cover(comic_id: str) -> FileResponse:
+    """Serve the local cover image for a comic."""
+    # Try common cover filenames
+    comic_dir = COMICS_DIR / comic_id
+    cover_names = ["cover.jpg", "cover.jpeg", "cover.png", "cover.webp"]
+    
+    for name in cover_names:
+        cover_path = comic_dir / name
+        if cover_path.exists():
+            media_type = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".webp": "image/webp",
+            }.get(cover_path.suffix.lower(), "image/jpeg")
+            return FileResponse(cover_path, media_type=media_type)
+    
+    raise HTTPException(status_code=404, detail=f"Cover not found for comic '{comic_id}'")
 
 
 @router.post("/{comic_id}/download")
