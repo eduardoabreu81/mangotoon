@@ -33,5 +33,14 @@ class SourceRegistry:
                 return adapter
         raise UnsupportedSource(f"Unsupported source for comic '{comic.comic_id}'.")
 
+    def refresh_adapters(self) -> None:
+        """Reload adapters with current settings (e.g. after language change)."""
+        self.adapters = _default_adapters()
+
+
+def get_fresh_registry() -> SourceRegistry:
+    """Return a registry with adapters configured from current settings."""
+    return SourceRegistry(_default_adapters())
+
 
 source_registry = SourceRegistry()
